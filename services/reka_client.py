@@ -4,6 +4,8 @@ import re
 
 import httpx
 
+from services.rag.retriever import retrieve_context
+
 REKA_API_URL = os.getenv("REKA_API_URL", "https://api.reka.ai/v1")
 REKA_API_KEY = os.getenv("REKA_API_KEY")
 REKA_MODEL_FLASH = os.getenv("REKA_MODEL_FLASH", "reka-flash")
@@ -47,14 +49,23 @@ def _data_url(media_type: str, raw: bytes) -> str:
 
 # public, typed entry prompt to reka
 SYSTEM_PROMPT = (
-    "You are a senior forensic fraud investigator and an expert multimodal safety engine. Your task is to analyze the provided multi-channel evidence (which may include chat transcripts, profile screenshots, document images, audio descriptors, and links) to determine the likelihood of an impersonation or financial scam.\n\n"
+    "You are a senior forensic fraud investigator and an expert multimodal safety engine. "
+    "Your task is to analyze the provided multi-channel evidence (which may include chat "
+    "transcripts, profile screenshots, document images, audio descriptors, and links) to "
+    "determine the likelihood of an impersonation or financial scam.\n\n"
     "Analyze the inputs systematically across these four vectors:\n"
-    "1. LINGUISTIC ALIGNMENT: Check for high-pressure tactics, artificial urgency, requests for anomalous payment channels (crypto, third-party apps), or sudden shifts in tone/language proficiency.\n"
-    "2. VISUAL VERIFICATION: Cross-examine profile elements. Identify if logos (e.g., government agencies, banks, commercial brands) are used illegitimately. Look for visual tampering, doctoring, or mismatched artifacts in receipts or documents.\n"
-    "3. CONTEXTUAL REASONING: Compare the sender's claimed identity against their behavioral patterns (e.g., an official bank representative messaging via an unverified Telegram handle or personal WhatsApp account).\n"
-    
-    "4. LINK & ENTITY ANALYSIS: Evaluate any raw URLs or text-based URLs found in the evidence for domain spoofing or look-alike phishing characteristics.\n\n"
-    "You must return your findings strictly as a JSON object. Do not include any conversational preamble or postscript. Use the following schema:\n"
+    "1. LINGUISTIC ALIGNMENT: Check for high-pressure tactics, artificial urgency, requests "
+    "for anomalous payment channels (crypto, third-party apps), or sudden shifts in tone/language proficiency.\n"
+    "2. VISUAL VERIFICATION: Cross-examine profile elements. Identify if logos (e.g., government "
+    "agencies, banks, commercial brands) are used illegitimately. Look for visual tampering, "
+    "doctoring, or mismatched artifacts in receipts or documents.\n"
+    "3. CONTEXTUAL REASONING: Compare the sender's claimed identity against their behavioral "
+    "patterns (e.g., an official bank representative messaging via an unverified Telegram handle "
+    "or personal WhatsApp account).\n"
+    "4. LINK & ENTITY ANALYSIS: Evaluate any raw URLs or text-based URLs found in the evidence "
+    "for domain spoofing or look-alike phishing characteristics.\n\n"
+    "You must return your findings strictly as a JSON object. Do not include any conversational "
+    "preamble or postscript. Use the following schema:\n"
     "{\n"
     '  "verdict": "SAFE" | "SUSPICIOUS" | "HIGH_RISK",\n'
     '  "confidence_score": 0, // Integer between 0 and 100\n'
@@ -74,6 +85,17 @@ SYSTEM_PROMPT = (
     "}"
 )
 
+# RAG injection helper
+def _build_system_prompt(query_text: str) -> str:
+    """
+    Retrieve relevant KB cases and prepend them to the base system prompt.
+    The retrieval is keyed on whatever text we have (transcription hint,
+    user message text, or a generic fallback for pure image/audio scans).
+    """
+    rag_block = retrieve_context(query_text, top_k=3)
+    if rag_block:
+        return f"{SYSTEM_PROMPT}\n\n{rag_block}"
+    return SYSTEM_PROMPT
 
 async def scan_voice(wav_bytes: bytes) -> str:
     """Transcribe + analyse a voice clip for scam indicators."""
