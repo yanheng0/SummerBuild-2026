@@ -6,6 +6,8 @@ from telegram.ext import ContextTypes
 from services.reka_client import scan_image
 from services.utils.formatter import format_image_verdict
 
+from datetime import datetime, timezone
+
 log = logging.getLogger(__name__)
 
 
@@ -21,6 +23,17 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         raw = await scan_image(bytes(image_bytes))
         await status.edit_text(format_image_verdict(raw))
+
+        # Persist raw JSON result so /report can generate a police report from it
+        context.user_data["last_analysis"] = raw
+        context.user_data["last_analysis_time"] = datetime.now(timezone.utc).strftime(
+            "%d %B %Y, %I:%M %p UTC"
+        )
+ 
+        formatted = format_image_verdict(raw)
+        await status.edit_text(
+            formatted + "\n\n💡 Use /report to generate a draft police report."
+        )
 
     except Exception as e:
         log.exception("image handler failed")

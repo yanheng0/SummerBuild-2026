@@ -85,6 +85,19 @@ SYSTEM_PROMPT = (
     "}"
 )
 
+REPORT_SYSTEM_PROMPT = (
+    "You are an assistant helping Singapore residents draft police reports for scam or deepfake incidents.\n"
+    "Given a JSON analysis result from a deepfake/scam detection scan, produce a clear, formal "
+    "draft police report using these questions:\n\n"
+    "Any identified subject or impersonated party name - e.g. any unique features of the person, what is the number that is used to contact\n"
+    "What was the type of scam being conducted - e.g. impersonation, financial fraud, misinformation\n"
+    "The date and time the image was submitted for analysis\n"
+    "The platform or context where the content was encountered (if determinable from the analysis)\n"
+    "What key information is used to make the scam believable"
+    "Format each section using formal, factual language. "
+    "Do not invent details not present in the analysis. "
+)
+
 # RAG injection helper
 def _build_system_prompt(query_text: str) -> str:
     """
@@ -96,6 +109,7 @@ def _build_system_prompt(query_text: str) -> str:
     if rag_block:
         return f"{SYSTEM_PROMPT}\n\n{rag_block}"
     return SYSTEM_PROMPT
+
 
 async def scan_voice(wav_bytes: bytes) -> str:
     """Transcribe + analyse a voice clip for scam indicators."""
@@ -144,7 +158,7 @@ async def scan_image(image_bytes: bytes) -> str:
             ],
         },
     ]
-    return await _chat(messages)
+    return await _chat(messages, REKA_MODEL_FLASH)
 
 
 async def scan_text(text: str) -> str:
@@ -227,3 +241,19 @@ async def scan_voice_core(wav_bytes: bytes) -> str:
         },
     ]
     return await _chat(messages, REKA_MODEL_CORE)
+
+
+async def generate_report(analysis_json: str, submitted_at: str) -> str:
+    messages = [
+        {"role": "system", "content": REPORT_SYSTEM_PROMPT},
+        {
+            "role": "user",
+            "content": (
+                f"The following scan result was produced on {submitted_at}:\n\n"
+                f"{analysis_json}\n\n"
+                "Please generate the 5W1H draft police report."
+            ),
+        },
+    ]
+    return await _chat(messages, REKA_MODEL_FLASH)
+
