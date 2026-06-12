@@ -98,6 +98,25 @@ REPORT_SYSTEM_PROMPT = (
     "Do not invent details not present in the analysis. "
 )
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
+# RAG injection helper
+def _build_system_prompt(query_text: str) -> str:
+    """
+    Retrieve relevant KB cases and prepend them to the base system prompt.
+    The retrieval is keyed on whatever text we have (transcription hint,
+    user message text, or a generic fallback for pure image/audio scans).
+    """
+    rag_block = retrieve_context(query_text, top_k=3)
+    if rag_block:
+        return f"{SYSTEM_PROMPT}\n\n{rag_block}"
+    return SYSTEM_PROMPT
+
+<<<<<<< Updated upstream
+=======
+
 # RAG injection helper
 def _build_system_prompt(query_text: str) -> str:
     """
