@@ -3,6 +3,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import os
+
+load_dotenv()
 from telegram.ext import Application, MessageHandler, CommandHandler, filters
 from handlers.voice import handle_voice
 from handlers.image import handle_image
@@ -12,7 +14,6 @@ from handlers.report import handle_report
 from handlers.help import handle_help
 
 
-load_dotenv()
 logging.basicConfig(level=logging.INFO)
 
 def main():
