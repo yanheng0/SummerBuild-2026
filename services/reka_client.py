@@ -1,11 +1,12 @@
 import base64
 import os
+import re
 
 import httpx
 
 REKA_API_URL = os.getenv("REKA_API_URL", "https://api.reka.ai/v1")
 REKA_API_KEY = os.getenv("REKA_API_KEY")
-REKA_MODEL = os.getenv("REKA_MODEL", "reka-flash")  # cheapest multimodal model
+REKA_MODEL = os.getenv("REKA_MODEL", "reka-flash")  
 
 # low-level call 
 async def _chat(messages: list, timeout: float = 60.0) -> str:
@@ -32,21 +33,36 @@ async def _chat(messages: list, timeout: float = 60.0) -> str:
         data = r.json()
 
     # Reka follows an OpenAI-ish shape: choices[0].message.content
-    return data["choices"][0]["message"]["content"]
+    raw = data["choices"][0]["message"]["content"]
+
+    cleaned = re.sub(r"```(?:json)?|```", "", raw)
+    cleaned = re.sub(r"^\s*json\s*$", "", cleaned, flags=re.MULTILINE)
+    return cleaned.strip()
 
 
 def _data_url(media_type: str, raw: bytes) -> str:
     return f"data:{media_type};base64,{base64.b64encode(raw).decode()}"
 
 
-# public, typed entry points 
+# public, typed entry prompt to reka 
 SYSTEM_PROMPT = (
-    "You are a safety assistant helping a user in Singapore spot scams. "
-    "Analyse the user's input and respond in this exact format:\n"
-    "VERDICT: <scam|suspicious|likely_safe>\n"
-    "CONFIDENCE: <0-100>\n"
-    "REASON: <one short sentence>\n"
-    "Be concise."
+    "You are a scam and deepfake detection assistant for users in Singapore. "
+    "You analyse text messages, images, and video frames for signs of impersonation scams, "
+    "social engineering, and AI-generated or manipulated media.\n\n"
+    "Always respond ONLY with a valid JSON object in this exact structure:\n"
+    "{\n"
+    '  "verdict": "scam" | "suspicious" | "safe",\n'
+    '  "confidence": <float 0.0-1.0>,\n'
+    '  "reason": "<one concise sentence summarising the overall risk>",\n'
+    '  "indicators": ["<specific finding 1>", "<specific finding 2>"]\n'
+    "}\n\n"
+    "Rules:\n"
+    "- indicators must be an empty list [] if nothing suspicious is found\n"
+    "- reason must always be present, even for safe content\n"
+    "- Do not include any text outside the JSON object\n"
+    "- Calibrate confidence to the Singapore threat landscape: "
+    "government impersonation (MOM, IRAS, SPF, MAS, CPF), parcel scams, "
+    "banking fraud, love scams, and job scams are high-prevalence"
 )
 
 
