@@ -103,7 +103,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         raw_flash = await scan_text(text)
         flash_parsed = _parse_reka_response_new(raw_flash)
         conf = float(flash_parsed.get("confidence_score", 0))
-        needs_core = 50 <= conf <= 70  # ambiguous range
+        needs_core = 30 <= conf <= 70  # ambiguous range & potential false positives
 
         # Core analysis on text if ambiguous
         core_parsed = None
