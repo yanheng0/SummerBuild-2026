@@ -1,13 +1,14 @@
 import logging
 from dotenv import load_dotenv
 import os
+
+load_dotenv()
 from telegram.ext import Application, MessageHandler, CommandHandler, filters
 from handlers.voice import handle_voice
 from handlers.image import handle_image
 from handlers.text import handle_text
 from handlers.start import handle_start
 
-load_dotenv()
 logging.basicConfig(level=logging.INFO)
 
 def main():
