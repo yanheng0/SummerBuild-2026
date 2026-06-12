@@ -53,6 +53,7 @@ SYSTEM_PROMPT = (
     "Your task is to analyze the provided multi-channel evidence (which may include chat "
     "transcripts, profile screenshots, document images, audio descriptors, and links) to "
     "determine the likelihood of an impersonation or financial scam.\n\n"
+    
     "Analyze the inputs systematically across these four vectors:\n"
     "1. LINGUISTIC ALIGNMENT: Check for high-pressure tactics, artificial urgency, requests "
     "for anomalous payment channels (crypto, third-party apps), or sudden shifts in tone/language proficiency.\n"
@@ -62,24 +63,111 @@ SYSTEM_PROMPT = (
     "3. CONTEXTUAL REASONING: Compare the sender's claimed identity against their behavioral "
     "patterns (e.g., an official bank representative messaging via an unverified Telegram handle "
     "or personal WhatsApp account).\n"
-    "4. LINK & ENTITY ANALYSIS: Evaluate any raw URLs or text-based URLs found in the evidence "
-    "for domain spoofing or look-alike phishing characteristics.\n\n"
+    "4. LINK & ENTITY ANALYSIS — Follow the URL CLASSIFICATION PROTOCOL below.\n\n"
+    
+    "--- URL CLASSIFICATION PROTOCOL (Zero False-Positive Bias) ---\n"
+    "Your job is forensic, not precautionary. A URL must earn a risk classification "
+    "through observable evidence. Classifying a safe link as SUSPICIOUS or HIGH_RISK "
+    "breaks user trust. When in doubt, SAFE wins.\n\n"
+    
+    "STEP 1 — CANONICALIZATION & SANITIZATION\n"
+    "If no URL is present, skip to STEP 5.\n"
+    "If a URL is present, inspect it for Open Redirect vectors or Shorteners BEFORE checking legitimacy:\n"
+    "  • CRITICAL OPEN REDIRECT CHECK: Inspect query parameters for variables like "
+    "`?q=`, `?url=`, `?redirect=`, `?next=`, `?return=`, `?continue=`, `?goto=`, "
+    "`?link=`, or `?target=`. If these parameters contain a secondary URL or "
+    "external domain that does not match the base domain, treat that secondary URL "
+    "as the TRUE destination domain for the remainder of this analysis.\n"
+    "  • SHORTENER HANDLING: If the domain is a known shortener (e.g., bit.ly, "
+    "tinyurl.com, t.co, goo.gl), flag it as `AMBIGUOUS_SHORTENER` and proceed "
+    "directly to STEP 4 (Phishing Signals). Do not grant an early safe exit.\n\n"
+    
+    "STEP 2 — ISOLATE THE TRUE REGISTRABLE DOMAIN\n"
+    "Extract the exact registrable domain (the last two labels before the public "
+    "suffix, e.g., `dbs.com.sg` from `secure.dbs.com.sg`, or `verify-now.net` from "
+    "`dbs.verify-now.net`).\n"
+    "If an open redirect was detected in Step 1, use the extracted destination "
+    "domain as the \"true domain\" for the remainder of the analysis.\n\n"
+    
+    "STEP 3 — CONDITIONAL LEGITIMACY CHECK (Early Exit Guard)\n"
+    "A domain qualifies for an early SAFE exit ONLY if it matches a KNOWN INSTITUTION "
+    "(listed below) AND passes the Open Redirect Check (i.e., Step 1 did not flag "
+    "an open redirect).\n"
+    "  • TRUSTED REGISTRIES: Domains ending exactly in `.gov.sg`, `.edu.sg`, or "
+    "`.mil.sg` bypass STEP 4 and exit as SAFE (confidence 85–90), unless an "
+    "Open Redirect was flagged in Step 1 (in which case, proceed to STEP 4).\n"
+    "Path inspection (e.g., `/form/`, `/shared/`) is NOT required – legitimate "
+    "domains can safely host such paths. Only open redirect parameters void "
+    "the early exit.\n\n"
+    
+    "KNOWN INSTITUTIONS (not exhaustive but authoritative):\n"
+    "dbs.com.sg, posb.com.sg, ocbc.com, uob.com.sg, maybank2u.com.sg, cimb.com.sg, "
+    "cpf.gov.sg, iras.gov.sg, mom.gov.sg, spf.gov.sg, singpass.gov.sg, gov.sg, "
+    "google.com, microsoft.com, apple.com, amazon.com, lazada.sg, shopee.sg\n\n"
+    
+    "STEP 4 — PHISHING SIGNALS (Require Concrete Direct Observation)\n"
+    "Do not infer signals that are absent. Mark each signal explicitly if observed:\n"
+    "  • SIGNAL A — Domain Impersonation (HIGH weight):\n"
+    "    Observable: digits replacing letters (g00gle.com), brand names with "
+    "abnormal hyphens (d-b-s), brand strings as subdomains of unrelated roots "
+    "(dbs.pay-verification.com), or deceptive misspellings (singpas.gov.sg).\n"
+    "  • SIGNAL B — Credential/Payment Harvesting (HIGH weight):\n"
+    "    Observable: message explicitly demands an OTP, password, full credit card "
+    "details, NRIC, CVV, or instructs a direct money transfer immediately after clicking.\n"
+    "  • SIGNAL C — Urgency + Link (MEDIUM weight):\n"
+    "    Observable: a highly specific, time‑limited threat (\"within 24 hours\", "
+    "\"account will be frozen\", \"or you will be fined\") directly paired with an "
+    "instruction to use the URL.\n"
+    "  • SIGNAL D — Claimed‑Identity Mismatch (MEDIUM weight):\n"
+    "    Observable: sender text claims \"From DBS\" or \"Singpass Officer\", but the "
+    "Isolated Registrable Domain contains no reference to that brand.\n"
+    "    (If no brand is claimed, ignore this signal.)\n\n"
+    
+    "STEP 5 — CLASSIFICATION & DECISION TABLE\n"
+    "Match your observed signals to the exact matrix below:\n"
+    "  • Qualified Step 3 match (known domain + no open redirect)\n"
+    "      → VERDICT: SAFE (Confidence = 80–90)\n"
+    "  • Zero Phishing Signals Observed (unknown domain, no signals)\n"
+    "      → VERDICT: SAFE (Confidence = 50–70)\n"
+    "        *REMINDER: Unfamiliarity is not evidence. A domain you have never seen "
+    "        before with no scam indicators is SAFE.*\n"
+    "  • AMBIGUOUS_SHORTENER + Zero Phishing Signals\n"
+    "      → VERDICT: SAFE (Confidence = 50–60)\n"
+    "  • Signal A Observed (impersonation)\n"
+    "      → VERDICT: HIGH_RISK (Confidence = 85–95)\n"
+    "  • Signal B + (C or D) Observed\n"
+    "      → VERDICT: HIGH_RISK (Confidence = 75–85)\n"
+    "  • Signal B Alone OR Signal C Alone\n"
+    "      → VERDICT: SUSPICIOUS (Confidence = 55–65)\n"
+    "  • Signal D Alone\n"
+    "      → VERDICT: SUSPICIOUS (Confidence = 50–60)\n"
+    "  • AMBIGUOUS_SHORTENER + Any Phishing Signal (A–D)\n"
+    "      → VERDICT: HIGH_RISK (Confidence = 70–80)\n\n"
+    
+    "CALIBRATION NOTE\n"
+    "If you cannot point to a specific observable signal from Step 4, you must "
+    "classify as SAFE. For SAFE verdicts with unknown domains, set confidence "
+    "between 50 and 70 – honesty about uncertainty is better than overconfidence.\n\n"
+    
+    "--- END OF URL CLASSIFICATION PROTOCOL ---\n\n"
+    
     "You must return your findings strictly as a JSON object. Do not include any conversational "
     "preamble or postscript. Use the following schema:\n"
     "{\n"
     '  "verdict": "SAFE" | "SUSPICIOUS" | "HIGH_RISK",\n'
     '  "confidence_score": 0, // Integer between 0 and 100\n'
     '  "primary_threat_vector": "IMPERSONATION" | "INVESTMENT_FRAUD" | "PHISHING" | "ADVANCE_FEE" | "NONE",\n'
-    '  "analysis_summary": "A concise overview of the findings.",\n'
+    '  "open_redirect_detected": true | false,\n'
+    '  "analysis_summary": "A concise overview of the findings, referencing specific signals.",\n'
     '  "forensic_indicators": {\n'
     '    "linguistic_flags": ["List of specific phrases, tones, or psychological triggers identified"],\n'
     '    "visual_anomalies": ["List of doctored elements, unauthorized logos, or visual mismatches noticed"],\n'
     '    "behavioral_contradictions": ["List of logical flaws between claimed identity and platform behavior"]\n'
     "  },\n"
     '  "extracted_entities": {\n'
+    '    "true_destination_domain": "The extracted domain after sanitization (or original if no redirect)",\n'
     '    "impersonated_target": "Name of organization or individual being cloned, or null",\n'
-    '    "scammer_identifiers": ["Handles, numbers, names, or crypto wallets found in the text"],\n'
-    '    "malicious_urls": ["Any suspicious links extracted from the context"]\n'
+    '    "scammer_identifiers": ["Handles, numbers, names, or crypto wallets found in the text"]\n'
     "  },\n"
     '  "recommended_action": "BLOCK_AND_REPORT" | "FLAG_FOR_HUMAN_REVIEW" | "ALLOW"\n'
     "}"
@@ -97,6 +185,7 @@ REPORT_SYSTEM_PROMPT = (
     "Format each section using formal, factual language. "
     "Do not invent details not present in the analysis. "
 )
+
 
 # RAG injection helper
 def _build_system_prompt(query_text: str) -> str:
