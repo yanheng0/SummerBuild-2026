@@ -253,7 +253,13 @@ async def generate_report(analysis_json: str, submitted_at: str) -> str:
     except json.JSONDecodeError:
         raise ValueError("Invalid JSON")
     msg = f"The following scan result was produced on {submitted_at}:\n\n{clean}\n\nGenerate the police report."
-    return await _chat_with_retry(
+    raw_report = await _chat_with_retry(
         [{"role": "system", "content": REPORT_SYSTEM_PROMPT}, {"role": "user", "content": msg}],
-        REKA_MODEL_FLASH  
+        REKA_MODEL_FLASH
     )
+    # Replace Markdown bold with HTML bold
+    clean_report = raw_report.replace("**", "").strip()  # Remove entirely? Better to convert.
+    # Or convert: 
+    import re
+    clean_report = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', raw_report)
+    return clean_report
