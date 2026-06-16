@@ -1,4 +1,4 @@
-# existing knowledge base of scams 
+# knowledge base of official recorded scams 
 KNOWLEDGE_BASE: list[dict] = [
     # GOVERNMENT IMPERSONATION 
     {
@@ -22,7 +22,8 @@ KNOWLEDGE_BASE: list[dict] = [
             "Do not tell anyone about this call or you will be arrested."
         ),
         "verdict": "HIGH_RISK",
-        "source": "SPF advisory 2024",
+        "source": "SPF Police Advisory, 2025-01-22",
+        "source_url": "https://www.police.gov.sg/Media-Room/Advisories/Police-Advisory-On-Government-Official-Impersonation-Scams-Involving-Locals-As-Cash-Mules-Collecting-Monies",
     },
     {
         "id": "gov-cpf-001",
@@ -34,13 +35,15 @@ KNOWLEDGE_BASE: list[dict] = [
             "Sends spoofed SMS that appears in legitimate CPF thread",
             "Provides a phishing link disguised as cpf.gov.sg",
             "Asks for SingPass credentials or OTP",
+            "SMS sender ID is not 'gov.sg' (all government SMS now use gov.sg)",
         ],
         "example": (
             "[CPF] An unauthorised withdrawal of $12,450 has been initiated from your account. "
             "If this was not you, click here immediately to cancel: https://cpf-gov-sg.verify-now.com/cancel"
         ),
         "verdict": "HIGH_RISK",
-        "source": "CPF Board advisory 2024",
+        "source": "CPF Board advisory, 2024",
+        "source_url": "https://www.cpf.gov.sg/member/faq/other-matters/scams/how-can-i-tell-if-the-workfare-sms-i-received-is-real",
     },
     {
         "id": "gov-iras-001",
@@ -51,6 +54,7 @@ KNOWLEDGE_BASE: list[dict] = [
             "Claims a tax refund is pending and requires bank details to process",
             "Link does not resolve to iras.gov.sg",
             "Urgency framing: 'refund expires in 24 hours'",
+            "IRAS will never ask for banking credentials via email or SMS",
         ],
         "example": (
             "Dear Taxpayer, IRAS has processed a GST refund of SGD 874.20 for your account. "
@@ -58,10 +62,31 @@ KNOWLEDGE_BASE: list[dict] = [
             "https://iras-refund.sg-gov-verify.net/claim"
         ),
         "verdict": "HIGH_RISK",
-        "source": "IRAS advisory 2023",
+        "source": "SPF Police Advisory, 2026-01-29",
+        "source_url": "https://www.police.gov.sg/Media-Room/Advisories/Police-Advisory-On-Phishing-Scams-Involving-The-Impersonation-Of-Inland-Revenue-Authority-Of-Singapore-(IRAS)",
+    },
+    {
+        "id": "gov-pdpc-001",
+        "category": "IMPERSONATION",
+        "tags": ["pdpc", "personal data", "commission", "government"],
+        "description": "PDPC officer impersonation scam",
+        "indicators": [
+            "Caller claims to be from Personal Data Protection Commission",
+            "Claims victim's personal data has been misused",
+            "Threatens legal action unless payment is made",
+            "Requests personal information or banking details",
+        ],
+        "example": (
+            "This is Officer Wong from PDPC. Your personal data has been compromised. "
+            "You must pay a $500 administrative fee to prevent legal action. "
+            "Transfer to this bank account immediately."
+        ),
+        "verdict": "HIGH_RISK",
+        "source": "SPF + PDPC joint advisory, 2025-02-17",
+        "source_url": "https://www.pdpc.gov.sg/Advisory-on-Government-Official-Impersonation-Scams-Involving-Impersonation-of-Personal-Data-Protection-Commission-(PDPC)-Officers",
     },
 
-    # BANK / MAS IMPERSONATION 
+    # BANK IMPERSONATION 
     {
         "id": "bank-dbs-001",
         "category": "IMPERSONATION",
@@ -72,13 +97,15 @@ KNOWLEDGE_BASE: list[dict] = [
             "Link domain is not dbs.com.sg (look for dbs-secure, dbs-verify, etc.)",
             "Requests iBanking credentials or full card number",
             "Claims account will be frozen unless action taken immediately",
+            "Banks do not send clickable links in SMS",
         ],
         "example": (
             "DBS: Your account has been restricted due to unusual login. "
             "Verify immediately or your account will be frozen: https://dbs-secure-sg.com/verify"
         ),
         "verdict": "HIGH_RISK",
-        "source": "MAS + ABS joint advisory 2024",
+        "source": "Joint SPF-DBS advisory, 2024-10-08",
+        "source_url": "https://www.police.gov.sg/Media-Room/Advisories/Joint-Advisory-By-SPF-And-DBS-On-Phishing-Scams-Involving-The-Impersonation-Of-DBS",
     },
     {
         "id": "bank-ocbc-001",
@@ -96,7 +123,27 @@ KNOWLEDGE_BASE: list[dict] = [
             "Please re-verify at: https://ocbc-id-verify.com/login to restore access."
         ),
         "verdict": "HIGH_RISK",
-        "source": "OCBC + SPF advisory 2022-2024",
+        "source": "OCBC + SPF advisory, 2022-2024",
+        "source_url": "https://www.police.gov.sg/Media-Room/Advisories",
+    },
+    {
+        "id": "bank-citibank-001",
+        "category": "IMPERSONATION",
+        "tags": ["citibank", "fraud", "department", "otp"],
+        "description": "Citibank fraud department impersonation",
+        "indicators": [
+            "Caller claims to be from Citibank's Fraud Department",
+            "Unknown caller ID or private number",
+            "Claims fraudulent transactions on account",
+            "Requests OTP or online banking credentials to 'reverse' transactions",
+        ],
+        "example": (
+            "This is Citibank Fraud Department. We detected a $5,000 transaction on your card. "
+            "Please provide the OTP we just sent to cancel this transaction."
+        ),
+        "verdict": "HIGH_RISK",
+        "source": "Joint SPF-Citibank advisory, 2025-07-23",
+        "source_url": "https://www.police.gov.sg/Media-Room/Advisories/Joint-Advisory-By-SPF-And-Citibank-On-Phishing-Scams-Involving-Impersonation-Of-The-Bank's-Staff",
     },
 
     # INVESTMENT SCAMS 
@@ -112,6 +159,7 @@ KNOWLEDGE_BASE: list[dict] = [
             "Initial small withdrawal allowed to build trust",
             "Large deposit requested; withdrawal blocked citing 'tax' or 'fee'",
             "Platform URL is newly registered and not verifiable",
+            "Platform not on MAS Investor Alert List (or is on it)",
         ],
         "example": (
             "Hey! I've been using this platform my uncle recommended — CryptoMaxSG.io. "
@@ -119,7 +167,8 @@ KNOWLEDGE_BASE: list[dict] = [
             "Minimum to start is just $500 USDT. Here's my portfolio screenshot."
         ),
         "verdict": "HIGH_RISK",
-        "source": "SPF + CAD advisory 2024",
+        "source": "MAS Investor Alert List",
+        "source_url": "https://www.mas.gov.sg/investor-alert-list",
     },
     {
         "id": "invest-whatsapp-group-001",
@@ -132,6 +181,7 @@ KNOWLEDGE_BASE: list[dict] = [
             "Other members (bots) express excitement and gratitude",
             "Promoted platform is not licensed by MAS",
             "Asks for money transfer via PayNow to individual, not corporate account",
+            "Unlicensed financial advice being provided",
         ],
         "example": (
             "Welcome to SG Elite Traders 💰 Our sifu has 15 years Wall Street experience. "
@@ -139,7 +189,8 @@ KNOWLEDGE_BASE: list[dict] = [
             "Join our premium tier for SGD 800/month — PayNow to 9123XXXX (John Tan)."
         ),
         "verdict": "HIGH_RISK",
-        "source": "MAS investor alert list guidance 2024",
+        "source": "MAS Investor Alert List + SPF advisories",
+        "source_url": "https://www.mas.gov.sg/investor-alert-list",
     },
 
     # JOB SCAMS 
@@ -162,10 +213,11 @@ KNOWLEDGE_BASE: list[dict] = [
             "Contact our HR: @TelegramHandle"
         ),
         "verdict": "HIGH_RISK",
-        "source": "SPF scam alert 2024",
+        "source": "SPF scam alert, 2024",
+        "source_url": "https://www.police.gov.sg/Media-Room/Advisories",
     },
 
-    # PHISHING / PARCEL SCAMS 
+    # PHISHING SCAMS 
     {
         "id": "phish-singpost-001",
         "category": "PHISHING",
@@ -173,7 +225,7 @@ KNOWLEDGE_BASE: list[dict] = [
         "description": "SingPost / parcel delivery phishing SMS",
         "indicators": [
             "Claims parcel is held pending customs or delivery fee payment",
-            "Small fee requested ($1-$5) to lower guard"
+            "Small fee requested ($1-$5) to lower guard",
             "Link collects full card details after fee payment",
             "Sender ID spoofed as 'SingPost' or 'SP'",
             "No tracking number or it does not match SingPost format",
@@ -183,7 +235,8 @@ KNOWLEDGE_BASE: list[dict] = [
             "Pay now to avoid return: https://singpost-delivery-sg.com/pay"
         ),
         "verdict": "HIGH_RISK",
-        "source": "SingPost advisory 2023-2024",
+        "source": "SingPost advisory, 2023-2024",
+        "source_url": "https://www.singpost.com/",
     },
     {
         "id": "phish-imda-001",
@@ -200,7 +253,8 @@ KNOWLEDGE_BASE: list[dict] = [
             "Call 6XXX-XXXX within 24 hours to retain your number."
         ),
         "verdict": "HIGH_RISK",
-        "source": "IMDA advisory 2023",
+        "source": "IMDA advisory, 2023",
+        "source_url": "https://www.imda.gov.sg/",
     },
 
     # ROMANCE SCAMS 
@@ -222,7 +276,8 @@ KNOWLEDGE_BASE: list[dict] = [
             "I will pay you back double when I return next month. Please send via Bitcoin to this address."
         ),
         "verdict": "HIGH_RISK",
-        "source": "SPF advisory 2024",
+        "source": "SPF advisory, 2024",
+        "source_url": "https://www.police.gov.sg/Media-Room/Advisories",
     },
 
     # LEGITIMATE PATTERNS 
@@ -243,6 +298,7 @@ KNOWLEDGE_BASE: list[dict] = [
         ),
         "verdict": "SAFE",
         "source": "DBS legitimate SMS template",
+        "source_url": "https://www.dbs.com.sg/",
     },
     {
         "id": "legit-singpass-001",
@@ -260,5 +316,6 @@ KNOWLEDGE_BASE: list[dict] = [
         ),
         "verdict": "SAFE",
         "source": "GovTech / NDI",
+        "source_url": "https://www.singpass.gov.sg/",
     },
 ]
