@@ -37,8 +37,8 @@ Scambot/
 ```
 
 ## Tech Stack:
-Backend: Python 3.11+
-Frontend: 
-AI: Reka Vision
+- Backend: Python 3.11+
+- Frontend: 
+- AI: Reka Vision
 
 
