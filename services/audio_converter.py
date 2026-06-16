@@ -3,8 +3,6 @@ from pydub import AudioSegment
 from pydub.utils import which
 import io
 
-# pydub shells out to ffmpeg. The Conda ffmpeg is missing VC++ runtime DLLs on
-# this machine, so we point pydub at the standalone build we extracted to C:\ffmpeg.
 _FFMPEG_DIR = r"C:\ffmpeg\ffmpeg-8.1.1-full_build\bin"
 if os.path.isdir(_FFMPEG_DIR):
     AudioSegment.converter = os.path.join(_FFMPEG_DIR, "ffmpeg.exe")
