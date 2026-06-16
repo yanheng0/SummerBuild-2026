@@ -13,68 +13,55 @@ logger = logging.getLogger(__name__)
 REKA_API_URL = os.getenv("REKA_API_URL", "https://api.reka.ai/v1")
 REKA_API_KEY = os.getenv("REKA_API_KEY")
 REKA_MODEL_FLASH = os.getenv("REKA_MODEL_FLASH", "reka-flash")
-REKA_MODEL_CORE = os.getenv("REKA_MODEL_CORE", "reka-core-20240501")
 
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 MAX_AUDIO_BYTES = 20 * 1024 * 1024
 
-# Image MIME detection via magic bytes 
+# Image MIME detection 
 def _detect_image_mime(data: bytes) -> str:
-    """
-    Detect MIME type from the first few bytes of image data.
-    Returns 'application/octet-stream' if unknown.
-    """
     if len(data) < 12:
         return "application/octet-stream"
-
-    # JPEG: FF D8 FF
     if data[:3] == b'\xff\xd8\xff':
         return "image/jpeg"
-    # PNG: 89 50 4E 47 0D 0A 1A 0A
     if data[:8] == b'\x89PNG\r\n\x1a\n':
         return "image/png"
-    # GIF: GIF87a or GIF89a
     if data[:6] in (b'GIF87a', b'GIF89a'):
         return "image/gif"
-    # WebP: RIFF....WEBP
     if data[:4] == b'RIFF' and len(data) >= 12 and data[8:12] == b'WEBP':
         return "image/webp"
-    # BMP: BM
     if data[:2] == b'BM':
         return "image/bmp"
-    # SVG: starts with '<svg' or '<?xml' – treat as text, but we'll return image/svg+xml
     if data[:4] in (b'<svg', b'<?xm'):
         return "image/svg+xml"
-
     return "application/octet-stream"
 
-
-# API call with retry 
-async def _call_reka(messages: list, model: str = REKA_MODEL_FLASH, timeout: float = 60.0) -> str:
+# API call with retry and temperature 
+async def _call_reka(messages: list, model: str = REKA_MODEL_FLASH, timeout: float = 60.0, temperature: float = 0.2) -> str:
     if not REKA_API_KEY:
         raise RuntimeError("REKA_API_KEY not set")
     headers = {"X-Api-Key": REKA_API_KEY, "Content-Type": "application/json"}
+    payload = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature,
+    }
     async with httpx.AsyncClient(timeout=timeout) as client:
         resp = await client.post(
             f"{REKA_API_URL}/chat/completions",
             headers=headers,
-            json={ 
-                "model": model, 
-                "messages": messages,
-                "temperature": 0.2
-            },
+            json=payload,
         )
         if resp.status_code >= 400:
-            error_details = resp.text 
-            raise RuntimeError(f"Reka API error: {resp.status_code} - {error_details}")        
+            error_details = resp.text
+            raise RuntimeError(f"Reka API error: {resp.status_code} - {error_details}")
         data = resp.json()
     raw = data["choices"][0]["message"]["content"]
     return re.sub(r"```(?:json)?|```", "", raw).replace("json", "").strip()
 
-async def _chat_with_retry(messages: list, model: str = REKA_MODEL_FLASH, max_retries: int = 3) -> str:
+async def _chat_with_retry(messages: list, model: str = REKA_MODEL_FLASH, max_retries: int = 3, temperature: float = 0.2) -> str:
     for attempt in range(1, max_retries + 1):
         try:
-            return await _call_reka(messages, model)
+            return await _call_reka(messages, model, temperature=temperature)
         except (httpx.TimeoutException, RuntimeError) as e:
             if attempt == max_retries:
                 raise RuntimeError("Reka unavailable after retries") from None
@@ -160,7 +147,7 @@ REPORT_SYSTEM_PROMPT = (
     "Do not invent details not present in the analysis."
 )
 
-#  RAG injection
+# RAG injection 
 def _build_prompt(query: str) -> str:
     if query and query.strip():
         rag = retrieve_context(query, top_k=3)
@@ -169,29 +156,76 @@ def _build_prompt(query: str) -> str:
             return f"{parts[0]}\n\n{rag}\n\n{parts[1] if len(parts)>1 else ''}"
     return SYSTEM_PROMPT
 
-# Core escalation logic 
+# Self‑Reflection Escalation 
 async def _scan_with_escalation(content, query_text: str, size_limit=None, raw_data=None) -> dict:
     if raw_data and size_limit and len(raw_data) > size_limit:
         raise ValueError(f"Exceeds {size_limit//1024//1024} MB limit")
 
+    # First Flash pass
     flash_raw = await _chat_with_retry(
         [{"role": "system", "content": _build_prompt(query_text)}, {"role": "user", "content": content}],
         model=REKA_MODEL_FLASH
     )
     flash_parsed = _parse_response(flash_raw)
-    logger.info(f"Flash: verdict={flash_parsed['verdict']}, conf={flash_parsed['confidence_score']}")
+    logger.info(f"Flash 1st pass: verdict={flash_parsed['verdict']}, conf={flash_parsed['confidence_score']}")
 
-    if 30 <= flash_parsed["confidence_score"] <= 70:
-        logger.info("Escalating to Core due to ambiguous confidence")
-        core_raw = await _chat_with_retry(
-            [{"role": "system", "content": _build_prompt(query_text + " (detailed)")},
-             {"role": "user", "content": content}],
-            model=REKA_MODEL_CORE
+    # If not ambiguous, return immediately
+    if not (30 <= flash_parsed["confidence_score"] <= 70):
+        return flash_parsed
+
+    # Ambiguous -> verification pass
+    logger.info("Confidence ambiguous – running verification pass with step‑by‑step reasoning")
+
+    verification_instruction = (
+        "You are now performing a forensic verification. Re‑examine the content and the initial analysis. "
+        "Follow these steps exactly:\n"
+        "1. List all scam indicators you can clearly observe (e.g., urgency, credential request, domain mismatch, impersonation). "
+        "2. For each indicator, rate its strength as HIGH, MEDIUM, or LOW. "
+        "3. Check for any false‑positive triggers – are any indicators ambiguous or explained by legitimate context? "
+        "4. Based on the remaining strong indicators, produce a final verdict (SAFE, SUSPICIOUS, or HIGH_RISK) with a new confidence score (0–100). "
+        "5. Provide a concise summary explaining the reasoning.\n\n"
+        "Content to re‑analyse:\n" + (
+            content if isinstance(content, str) else "Multimedia content attached. Review the previously extracted text and visual context."
         )
-        core_parsed = _parse_response(core_raw)
-        logger.info(f"Core: verdict={core_parsed['verdict']}, conf={core_parsed['confidence_score']}")
-        return core_parsed
-    return flash_parsed
+    )
+
+    if isinstance(content, list):
+        verification_content = content + [{"type": "text", "text": verification_instruction}]
+        verification_messages = [
+            {"role": "system", "content": _build_prompt(query_text + " (verification)")},
+            {"role": "user", "content": verification_content}
+        ]
+    else:
+        verification_messages = [
+            {"role": "system", "content": _build_prompt(query_text + " (verification)")},
+            {"role": "user", "content": verification_instruction}
+        ]
+
+    # Run verification with lower temperature for determinism
+    verify_raw = await _chat_with_retry(verification_messages, model=REKA_MODEL_FLASH, temperature=0.0)
+    verify_parsed = _parse_response(verify_raw)
+    logger.info(f"Verification pass: verdict={verify_parsed['verdict']}, conf={verify_parsed['confidence_score']}")
+
+    # Combine: if agree, take higher confidence; else SUSPICIOUS 55%
+    if flash_parsed["verdict"] == verify_parsed["verdict"]:
+        return flash_parsed if flash_parsed["confidence_score"] >= verify_parsed["confidence_score"] else verify_parsed
+    else:
+        logger.info("Disagreement between passes; returning SUSPICIOUS (55%)")
+        return {
+            "verdict": "SUSPICIOUS",
+            "confidence_score": 55,
+            "scam_type": flash_parsed.get("scam_type") or verify_parsed.get("scam_type") or "OTHER",
+            "analysis_summary": (
+                f"Two analyses disagreed. Pass 1: {flash_parsed['verdict']} ({flash_parsed['confidence_score']}%). "
+                f"Pass 2: {verify_parsed['verdict']} ({verify_parsed['confidence_score']}%). Flagged for review."
+            ),
+            "indicators_found": list(set(
+                flash_parsed.get("indicators_found", []) + verify_parsed.get("indicators_found", [])
+            )),
+            "extracted_entities": flash_parsed.get("extracted_entities", 
+                {"domain": None, "impersonated_org": None, "payment_request": []}),
+            "recommended_action": "FLAG_FOR_HUMAN_REVIEW",
+        }
 
 # Public scan functions 
 async def scan_text(text: str) -> dict:
@@ -216,37 +250,7 @@ async def scan_voice(data: bytes, caption: str = "") -> dict:
     ]
     return await _scan_with_escalation(content, caption, MAX_AUDIO_BYTES, data)
 
-# Core‑only functions 
-async def scan_text_core(text: str) -> dict:
-    raw = await _chat_with_retry(
-        [{"role": "system", "content": _build_prompt(text)}, {"role": "user", "content": text}],
-        REKA_MODEL_CORE
-    )
-    return _parse_response(raw)
-
-async def scan_image_core(data: bytes, caption: str = "") -> dict:
-    if len(data) > MAX_IMAGE_BYTES:
-        raise ValueError(f"Image exceeds {MAX_IMAGE_BYTES//1024//1024} MB")
-    mime = _detect_image_mime(data)
-    content = [{"type": "image_url", "image_url": {"url": _data_url(mime, data)}},
-               {"type": "text", "text": "Analyse this image in detail." + (f" Caption: {caption}" if caption else "")}]
-    raw = await _chat_with_retry(
-        [{"role": "system", "content": _build_prompt(caption or "detailed image scam analysis")}, {"role": "user", "content": content}],
-        REKA_MODEL_CORE
-    )
-    return _parse_response(raw)
-
-async def scan_voice_core(data: bytes, caption: str = "") -> dict:
-    if len(data) > MAX_AUDIO_BYTES:
-        raise ValueError(f"Audio exceeds {MAX_AUDIO_BYTES//1024//1024} MB")
-    content = [{"type": "audio_url", "audio_url": {"url": _data_url("audio/wav", data)}},
-               {"type": "text", "text": "Analyse this voice message in detail." + (f" Caption: {caption}" if caption else "")}]
-    raw = await _chat_with_retry(
-        [{"role": "system", "content": _build_prompt(caption or "detailed voice scam analysis")}, {"role": "user", "content": content}],
-        REKA_MODEL_CORE
-    )
-    return _parse_response(raw)
-
+# Report generation (uses Flash)
 async def generate_report(analysis_json: str, submitted_at: str) -> str:
     try:
         clean = json.dumps(json.loads(analysis_json), ensure_ascii=False)
@@ -257,9 +261,6 @@ async def generate_report(analysis_json: str, submitted_at: str) -> str:
         [{"role": "system", "content": REPORT_SYSTEM_PROMPT}, {"role": "user", "content": msg}],
         REKA_MODEL_FLASH
     )
-    # Replace Markdown bold with HTML bold
-    clean_report = raw_report.replace("**", "").strip()  # Remove entirely? Better to convert.
-    # Or convert: 
-    import re
-    clean_report = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', raw_report)
+    # Clean up any stray "html" text if present
+    clean_report = raw_report.replace("html", "").replace("```", "").strip()
     return clean_report
