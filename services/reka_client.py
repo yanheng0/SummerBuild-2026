@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 REKA_API_URL = os.getenv("REKA_API_URL", "https://api.reka.ai/v1")
 REKA_API_KEY = os.getenv("REKA_API_KEY")
 REKA_MODEL_FLASH = os.getenv("REKA_MODEL_FLASH", "reka-flash")
-REKA_MODEL_CORE = os.getenv("REKA_MODEL_CORE", "reka-core")
+REKA_MODEL_CORE = os.getenv("REKA_MODEL_CORE", "reka-core-20240501")
 
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 MAX_AUDIO_BYTES = 20 * 1024 * 1024
