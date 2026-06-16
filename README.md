@@ -12,6 +12,8 @@ It is capable of drafting a detailed explaination for submission, providing deta
 police>>>
 
 ## Architecture:
+
+```text
 Scambot/
 ├── backend/
 │   ├── main.py                           
@@ -32,10 +34,11 @@ Scambot/
 │   └── voice.py                   #
 ├── requirement.txt
 └── Dockerfile
-
+```
 
 ## Tech Stack:
 Backend: Python 3.11+
 Frontend: 
 AI: Reka Vision
+
 
