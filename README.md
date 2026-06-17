@@ -163,7 +163,7 @@ Telegram sends voice notes as OGG/Opus. FraudNot transcodes them to 16kHz mono W
 ┌────────────────────────────────────────────────┐
 │             Intelligence Core                  │
 │                                                │
-│  1. RAG Retriever  — TF-IDF, SPF cases     │
+│  1. RAG Retriever  — TF-IDF, SPF cases         │
 │  2. Pass 1         — Reka Flash scan           │
 │  3. Pass 2         — Verification (if 30–70%)  │
 └────────────────────────────────────────────────┘
