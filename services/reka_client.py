@@ -56,7 +56,31 @@ async def _call_reka(messages: list, model: str = REKA_MODEL_FLASH, timeout: flo
             raise RuntimeError(f"Reka API error: {resp.status_code} - {error_details}")
         data = resp.json()
     raw = data["choices"][0]["message"]["content"]
-    return re.sub(r"```(?:json)?|```", "", raw).replace("json", "").strip()
+    return _extract_json(raw)
+
+
+# Strip markdown code fences and pull out the first JSON object from the
+# model's reply. We must NOT do .replace("json", "") on the whole reply —
+# that destroys the substring "json" wherever it legitimately appears in
+# analysis text, JSON keys, or values (e.g. "JSON-style encoding", a
+# reference to a JSON payload, etc.) and silently corrupts otherwise-valid
+# output, sending it to the parse-error fallback.
+def _extract_json(raw: str) -> str:
+    # Strip code fences (``` or ```json / ```JSON). The pattern only
+    # matches the fence markers themselves, not any other occurrence of
+    # the word "json" in the response.
+    cleaned = re.sub(r"```(?:json|JSON)?\s*|```", "", raw).strip()
+    if not cleaned:
+        raise RuntimeError("Reka returned an empty response")
+
+    # Find the first '{' and the matching last '}'. If the model wrapped
+    # its JSON in prose ("Here is the analysis: { ... }"), we take only
+    # the JSON object, not the surrounding text.
+    start = cleaned.find("{")
+    end = cleaned.rfind("}")
+    if start == -1 or end == -1 or end <= start:
+        raise RuntimeError("Reka response contained no JSON object")
+    return cleaned[start : end + 1]
 
 async def _chat_with_retry(messages: list, model: str = REKA_MODEL_FLASH, max_retries: int = 3, temperature: float = 0.2) -> str:
     for attempt in range(1, max_retries + 1):
@@ -78,10 +102,14 @@ def _parse_response(raw: str) -> dict:
         data = json.loads(raw)
     except json.JSONDecodeError:
         return _fallback("parse error")
-    verdict = data.get("verdict", "SAFE").upper()
+    # If the model returned valid JSON but with a missing/unknown verdict
+    # field, escalate rather than silently treating it as SAFE. Same
+    # reasoning as _fallback: for a scam detector, "we don't know" must
+    # not default to "allow".
+    verdict = data.get("verdict", "SUSPICIOUS").upper()
     if verdict not in ("SAFE", "SUSPICIOUS", "HIGH_RISK"):
-        verdict = "SAFE"
-    conf = max(0, min(100, int(data.get("confidence_score", 20))))
+        verdict = "SUSPICIOUS"
+    conf = max(0, min(100, int(data.get("confidence_score", 0))))
     return {
         "verdict": verdict,
         "confidence_score": conf,
@@ -89,18 +117,34 @@ def _parse_response(raw: str) -> dict:
         "analysis_summary": data.get("analysis_summary", ""),
         "indicators_found": data.get("indicators_found", []),
         "extracted_entities": data.get("extracted_entities", {"domain": None, "impersonated_org": None, "payment_request": []}),
-        "recommended_action": data.get("recommended_action", "ALLOW"),
+        # Action must be consistent with the verdict: SAFE→ALLOW, anything
+        # else→FLAG_FOR_HUMAN_REVIEW. A model that omits this field should
+        # not default to "ALLOW" — that would let an unparsed/escalated
+        # result auto-pass without human check.
+        "recommended_action": data.get(
+            "recommended_action",
+            "ALLOW" if verdict == "SAFE" else "FLAG_FOR_HUMAN_REVIEW",
+        ),
     }
 
 def _fallback(reason: str) -> dict:
+    # Default to SUSPICIOUS / FLAG_FOR_HUMAN_REVIEW when we can't get a
+    # usable result from the model. For a safety-critical classifier, an
+    # undecidable case must escalate — never auto-allow, because that
+    # would let real scams pass as "safe" on transient errors (bad JSON,
+    # network blip, model refusal, etc.). The escalation pipeline already
+    # uses SUSPICIOUS/55% on disagreement, so this stays consistent.
     return {
-        "verdict": "SAFE",
-        "confidence_score": 20,
-        "scam_type": "NONE",
-        "analysis_summary": f"Analysis unavailable: {reason}",
+        "verdict": "SUSPICIOUS",
+        "confidence_score": 0,
+        "scam_type": "OTHER",
+        "analysis_summary": (
+            f"Analysis could not be completed: {reason}. "
+            "Treat as unverified and review manually before acting on it."
+        ),
         "indicators_found": [],
         "extracted_entities": {"domain": None, "impersonated_org": None, "payment_request": []},
-        "recommended_action": "ALLOW",
+        "recommended_action": "FLAG_FOR_HUMAN_REVIEW",
     }
 
 # System prompts 
