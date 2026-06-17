@@ -74,7 +74,7 @@ Telegram sends voice notes as OGG/Opus. FraudNot transcodes them to 16kHz mono W
 ---
 
 ## System Architecture
-```
+```mermaid
     graph LR
     %% Styling to mimic the reference image's color blocking
     classDef default fill:#fff,stroke:#333,stroke-width:1px;
