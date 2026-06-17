@@ -150,7 +150,7 @@ Telegram sends voice notes as OGG/Opus. FraudNot transcodes them to 16kHz mono W
 [ User ] 📱
     │
     ▼
-[ Telegram Bot ] 🤖 ──────────────────────┐
+[ Telegram Bot ] 🤖 ───────────────────────┐
     │                                      │ /report
     ├─► Text / Image                       │
     └─► Voice note (.ogg / .mp3 / etc.)    │
