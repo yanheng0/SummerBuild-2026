@@ -5,8 +5,15 @@
 ![Telegram](https://img.shields.io/badge/Telegram-Bot-2CA5E0.svg)
 ![AI](https://img.shields.io/badge/AI-Reka_Vision-purple.svg)
 
-**FraudNot** is an autonomous, multimodal Telegram bot designed to protect Singapore residents from digital fraud in real time. Acting as a forensic scam detection engine, FraudNot analyses text messages, screenshots, and voice notes — grounding every verdict in verified advisories from the Singapore Police Force (SPF) and Monetary Authority of Singapore (MAS).
-Built with a focus on the Singaporean context, FraudNot grounds its AI analysis in real-world advisories from the Singapore Police Force (SPF) and Monetary Authority of Singapore (MAS).
+
+**FraudNot** is an autonomous, multimodal Telegram bot designed to protect Singapore residents from digital fraud in real time. FraudNot analyse text messages, screenshots, and voice notes, providing a verdict with an explanation of its analysis 
+based on its analysis. The analysis is grounded on the RAG database with actual Singapore scam cases rather than generic patterns.
+
+
+
+
+
+
 
 ---
 
