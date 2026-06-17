@@ -1,8 +1,8 @@
 import logging
-from telegram import Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 from services.reka_client import scan_image, MAX_IMAGE_BYTES
-from services.utils.formatter import format_verdict
+from services.utils.formatter_button import format_verdict_button
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +44,9 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         result = await scan_image(data, caption)
         context.user_data['last_analysis'] = result  # store for /report
 
-        reply = format_verdict(result)
-        await status_msg.edit_text(reply, parse_mode="HTML")
+        reply, reply_markup = format_verdict_button(result)
+
+        await status_msg.edit_text(reply, parse_mode="HTML", reply_markup=reply_markup)
     except Exception as e:
         logger.error(f"Image scan failed: {e}")
         await status_msg.edit_text("⚠️ Image analysis temporarily unavailable. Please try again later.")
