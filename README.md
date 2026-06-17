@@ -55,19 +55,19 @@ For anything urgent, call the **24/7 ScamShield Helpline at 1799**.
 
 ## Key Features
 
-- **Multimodal analysis**
+- **Multimodal analysis**:
 Text, images, and voice notes all go through the same pipeline. A fabricated bank transfer screenshot, a phishing URL buried in a message, a voice note impersonating an ICA officer.
 
-- **Singapore-specific RAG**
+- **Singapore-specific RAG**:
 Before every analysis, a TF-IDF retriever searches a curated knowledge base of verified SPF scam cases and injects the most relevant ones into the model's context. This is what stops the model from giving generic answers to Singapore-specific scam patterns.
 
-- **Self-reflection on ambiguous results**
+- **Self-reflection on ambiguous results**:
 When the initial confidence score lands between 30% and 70%, FraudNot runs a second verification pass. The model re-examines each indicator, rates its strength, checks for false-positive triggers, and produces a revised verdict. If the two passes disagree, the result defaults to SUSPICIOUS for human review.
 
-- **Police report drafting**
+- **Police report drafting**:
 `/report` parses the last scan result and drafts a structured police report. It's clearly labelled as a draft that needs verification before submission.
 
-- **Audio transcription pipeline**
+- **Audio transcription pipeline**:
 Telegram sends voice notes as OGG/Opus. FraudNot transcodes them to 16kHz mono WAV via FFmpeg, sends them to ElevenLabs Scribe for transcription, then runs the transcript through the standard text analysis pipeline. Voice-based impersonation scams get the same treatment as everything else.
 
 
