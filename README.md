@@ -51,7 +51,7 @@ FraudNot was built to close that gap.
 
 FraudNot gives any Telegram user — regardless of technical literacy — a zero-friction forensic verification layer. Instead of searching for information or second-guessing suspicious content alone, users forward the suspect material directly to SPOT and receive a structured verdict within seconds.
 
-If the content is a confirmed scam, SPOT can immediately draft a formal police report pre-populated with the relevant details, dramatically lowering the friction of reporting to SPF.
+If the content is a confirmed scam, FraudNot can immediately draft a formal police report pre-populated with the relevant details, dramatically lowering the friction of reporting to SPF.
 
 For urgent help, users can also contact the **24/7 ScamShield Helpline at 1799**.
 
