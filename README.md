@@ -116,20 +116,19 @@ Scambot/
 2. A Reka API key
 3. Docker or Python 3.11+ with FFmpeg installed 
 
-**Option 1: Running with Docker (Recommended)**
+**Option 1: Running with Docker (Recommended)**:\n
 Docker handles all system dependencies, including FFmpeg for voice note processing.
 
 Clone the repository:
-
-Bash
+```
 git clone [https://github.com/yourusername/SPOT-scambot.git](https://github.com/yourusername/SPOT-scambot.git)
 cd SPOT-scambot
 Configure Environment Variables:
-
-Bash
+```
+```
 cp .env.template .env
 Edit the .env file and insert your keys:
-
+```
 Code snippet
 TELEGRAM_BOT_TOKEN="your-telegram-bot-token"
 REKA_API_KEY="your-reka-api-key"
