@@ -4,7 +4,7 @@ load_dotenv()
 
 import os
 
-from telegram.ext import Application, MessageHandler, CommandHandler, filters
+from telegram.ext import Application, MessageHandler, CommandHandler, CallbackQueryHandler, filters
 from handlers.voice import handle_voice
 from handlers.image import handle_image
 from handlers.text import handle_text
@@ -24,6 +24,7 @@ def main():
     app.add_handler(MessageHandler(filters.AUDIO, handle_voice))
     app.add_handler(MessageHandler(filters.PHOTO, handle_image))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+    app.add_handler(CallbackQueryHandler(handle_report, pattern="^run_report$"))
     app.run_polling()
 
 if __name__ == '__main__':

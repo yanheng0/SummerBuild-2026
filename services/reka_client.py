@@ -12,6 +12,8 @@ logger = logging.getLogger(__name__)
 
 REKA_API_URL = os.getenv("REKA_API_URL", "https://api.reka.ai/v1")
 REKA_API_KEY = os.getenv("REKA_API_KEY")
+ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
+ELEVENLABS_API_URL = os.getenv("ELEVENLABS_API_URL", "https://api.elevenlabs.io/v1")
 REKA_MODEL_FLASH = os.getenv("REKA_MODEL_FLASH", "reka-flash")
 
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
@@ -74,7 +76,6 @@ async def _call_reka(messages: list, model: str = REKA_MODEL_FLASH, timeout: flo
         data = resp.json()
     raw = data["choices"][0]["message"]["content"]
     return _extract_json(raw)
-
 
 def _extract_json(raw: str) -> str:
     # Strip code fences (``` or ```json / ```JSON). The pattern only
@@ -188,18 +189,14 @@ SYSTEM_PROMPT = (
 )
 
 REPORT_SYSTEM_PROMPT = (
-    "You are an assistant helping Singapore residents draft police reports for scam or deepfake incidents.\n"
-    "Given a JSON analysis result from a deepfake/scam detection scan, produce a clear, formal "
-    "draft police report addressing these points in order:\n\n"
-    "1. Any identified subject or impersonated party name - e.g. any unique features of the person, what is the number that is used to contact.\n"
-    "2. What was the type of scam being conducted - e.g. impersonation, financial fraud, misinformation.\n"
-    "3. The date and time the image was submitted for analysis.\n"
-    "4. The platform or context where the content was encountered (if determinable from the analysis).\n"
-    "5. What key information is used to make the scam believable.\n"
-    "6. Recommended action based on the verdict.\n\n"
-    "Format each section with a clear heading (e.g., '1. Subject: ...'). "
-    "Use formal, factual language. "
-    "Do not invent details not present in the analysis."
+    "You are an assistant helping Singapore residents draft police reports for scam incidents.\n"
+    "Where and how did you get to know the other party? What are the exact details of the other party? \n"
+    "what were the words said? What was promised to you by the other party? \n"
+    "Did you receive any goods, services, and/or money or equivalent? If yes, what did you receive in total and how much? \n"
+    "How much money or equivalent, have you paid or transferred to the other party in total? \n"
+    "Details of each payment or transfer will be asked later. [Note: If you are making this report on behalf of another person, please add in a placeholder on behalf of the other person.] \n"
+    "What/how (e.g. signed contract, over phone) was the agreement established between you and the other party? \n"
+    "Details of transaction involved (e.g. data/time/mode/amount/location of payment or transfer, bank account number of all parties if applicable) \n"
 )
 
 # RAG injection 
@@ -296,40 +293,32 @@ async def scan_image(data: bytes, caption: str = "") -> dict:
     ]
     return await _scan_with_escalation(content, caption, MAX_IMAGE_BYTES, data)
 
-
 # Dedicated audio transcription via Reka's Speech API. We do this BEFORE
 # running scam analysis so the model works on real text content rather
 # than guessing from a prompt + RAG examples. 
 async def transcribe_audio(wav_bytes: bytes) -> str:
-    """Transcribe a WAV clip via Reka's /v1/transcription_or_translation endpoint.
+    """Transcribe a WAV clip via ElevenLabs Speech-to-Text API."""
+    if not ELEVENLABS_API_KEY:
+        raise RuntimeError("ELEVENLABS_API_KEY not set")
 
-    Returns the transcript string, or raises RuntimeError on failure.
-    Sampling rate must match the WAV header. Our converter emits 16kHz
-    mono PCM, which the API documents as the recommended input.
-    """
-    if not REKA_API_KEY:
-        raise RuntimeError("REKA_API_KEY not set")
-    payload = {
-        "audio_url": _data_url("audio/wav", wav_bytes),
-        "sampling_rate": 16000,
-        "temperature": 0,
-        "max_tokens": 1024,
-    }
-    headers = {"X-Api-Key": REKA_API_KEY, "Content-Type": "application/json"}
+    headers = {"xi-api-key": ELEVENLABS_API_KEY}
+
     async with httpx.AsyncClient(timeout=60.0) as client:
         resp = await client.post(
-            f"{REKA_API_URL}/transcription_or_translation",
+            f"{ELEVENLABS_API_URL}/speech-to-text",
             headers=headers,
-            json=payload,
+            files={"file": ("audio.wav", wav_bytes, "audio/wav")},
+            data={"model_id": "scribe_v1"},
         )
+
     if resp.status_code >= 400:
         raise RuntimeError(
-            f"Reka transcription error: {resp.status_code} - {resp.text[:300]}"
+            f"ElevenLabs transcription error: {resp.status_code} - {resp.text[:300]}"
         )
-    data = resp.json()
-    transcript = (data.get("transcript") or "").strip()
-    return transcript
 
+    data = resp.json()
+    transcript = (data.get("text") or "").strip()
+    return transcript
 
 async def scan_voice(data: bytes, caption: str = "") -> dict:
     """Transcribe the audio first, then run text-based scam analysis."""
