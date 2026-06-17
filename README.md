@@ -116,7 +116,7 @@ Scambot/
 2. A Reka API key
 3. Docker or Python 3.11+ with FFmpeg installed 
 
-**Option 1: Running with Docker (Recommended)**:\n
+**Option 1: Running with Docker (Recommended)**:
 Docker handles all system dependencies, including FFmpeg for voice note processing.
 
 Clone the repository:
@@ -127,28 +127,30 @@ Configure Environment Variables:
 ```
 ```
 cp .env.template .env
+```
 Edit the .env file and insert your keys:
 ```
-Code snippet
 TELEGRAM_BOT_TOKEN="your-telegram-bot-token"
 REKA_API_KEY="your-reka-api-key"
 REKA_API_URL="[https://api.reka.ai/v1](https://api.reka.ai/v1)"
+```
 Build and Run the Bot:
-
-Bash
+```
 docker-compose up -d --build
-To view logs: docker-compose logs -f
+```
+To view logs: 
+```docker-compose logs -f```
 
 **Option 2: Local Setup**
 Install FFmpeg: Ensure FFmpeg is installed and added to your system's PATH.
 
 Install Python dependencies:
-
-Bash
+```
 python -m venv venv
 source venv/bin/activate  # On Windows use: venv\Scripts\activate
 pip install -r requirements.txt
+```
 Run the bot:
-
-Bash
+```
 python main.py
+```
