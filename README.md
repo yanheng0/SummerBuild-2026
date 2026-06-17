@@ -73,7 +73,7 @@ SPOT is designed as a linear, high-speed forensic pipeline. When a user interact
        │
        ▼
 [ Final Verdict ] 🚨 (Sent back to User)
-
+```
 ## How It Works:
 The telegram bot uses REKA API to analyse the image. The bot returns a confidence scoring of the scam as well as the explainment based on its verdict.
 It is capable of drafting a detailed explaination for submission, providing detailed information such as "" <<< which are useful information for the
