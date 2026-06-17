@@ -364,4 +364,10 @@ async def generate_report(analysis_json: str, submitted_at: str) -> str:
         REKA_MODEL_FLASH,
     )
     # Strip any stray markdown code fences the model may have added
-    return re.sub(r"```[a-z]*\s*|```", "", raw_report).strip()
+    cleaned = re.sub(r"```[a-z]*\s*|```", "", raw_report).strip()
+    # Convert markdown bold (**text**) to HTML bold (<b>text</b>)
+    # so Telegram's HTML parse mode renders it correctly
+    cleaned = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", cleaned)
+    # Also convert markdown headers (### Heading) to HTML bold
+    cleaned = re.sub(r"^#{1,3}\s+(.+)$", r"<b>\1</b>", cleaned, flags=re.MULTILINE)
+    return cleaned
