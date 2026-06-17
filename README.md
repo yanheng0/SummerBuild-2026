@@ -42,8 +42,6 @@ Scams are becoming increasingly sophisticated. Threat actors now utilize AI-gene
 
 ## System Architecture
 
-## System Architecture
-
 ```mermaid
 graph TD
     User([User / Victim]) -- "Sends Media/Text\n(Telegram)" --> Bot[SPOT Telegram Bot]
