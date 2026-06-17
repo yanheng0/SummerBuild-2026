@@ -11,10 +11,6 @@ based on its analysis. The analysis is grounded on the RAG database with actual 
 
 
 
-
-
-
-
 ---
 
 ## 📖 Table of Contents
@@ -29,29 +25,20 @@ based on its analysis. The analysis is grounded on the RAG database with actual 
 ---
 
 ## The Problem
-Scams are Singapore's most prevalent crime — and the numbers are staggering.
+Scams are Singapore's most prevalent crime. According to the **SPF Annual Scams and Cybercrime Brief 2025**, there were **37,308 scam cases** last year, with losses totalling **$913.1 million** — and that's only what was reported.
 
-According to the **SPF Annual Scams and Cybercrime Brief 2025**, Singapore recorded **37,308 scam cases** in 2025, with total losses amounting to **$913.1 million**. While overall case counts declined by 27.6% year-on-year, scammers are rapidly adapting, deploying more sophisticated tactics that are harder for the average person to detect.
+The four categories that do the most damage, per [ScamShield](https://www.scamshield.gov.sg):
 
-The four highest-impact scam categories tracked by [ScamShield (scamshield.gov.sg)](https://www.scamshield.gov.sg) tell the story:
-
-| Scam Type | Total Losses |
+| Scam Type | Losses |
 |---|---|
-| 💼 Investment Scams | **$336.2 million** |
-| 🏛️ Government Impersonation | **$242.9 million** |
-| 💼 Job Scams | **$123.5 million** |
-| 🎣 Phishing | **$39.9 million** |
+| Investment Scams | **$336.2 million** |
+| Government Impersonation | **$242.9 million** |
+| Job Scams | **$123.5 million** |
+| Phishing | **$39.9 million** |
 
-Beyond the financial toll, scams cause lasting psychological harm — victims report anxiety, shame, and loss of trust. Many never report incidents to the authorities, meaning the true scale is likely far greater.
+The count went down 27.6% in 2025, but the tactics got harder to catch. Scammers now use AI-generated voice notes, deepfake images, and spoofed government sender IDs. Static keyword filters and URL blacklists weren't built for any of that.
 
-**The core failure of existing tools is modality.** Traditional scam filters rely on static keyword blacklists and URL databases. They cannot:
-
-- **See** a screenshot of a fabricated bank transfer or fake crypto dashboard
-- **Listen** to a cloned voice note impersonating a government officer
-- **Reason** about local context — Singapore-specific agencies (CPF, IRAS, SPF), payment methods (PayNow), and scam patterns that generic models miss
-
-FraudNot was built to close that gap.
-
+The gap is modality. Existing tools can't read a screenshot of a fake PayNow transfer, can't listen to a cloned SPF officer's voice, and don't know that "safe account" transfers are a government impersonation red flag specific to Singapore. SPOT was built to fill that gap.
 ---
 
 ## How FraudNot Helps
