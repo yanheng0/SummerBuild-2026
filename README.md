@@ -45,9 +45,9 @@ The gap is modality. Existing tools can't read a screenshot of a fake PayNow tra
 ## How FraudNot Helps
 
 Send FraudNot a suspicious message, image, or voice note. It runs them through a forensic analysis pipeline grounded in real Singapore scam cases and returns a verdict with confidence score, scam type, key indicators, and a recommended action 
-all within Telegram and require no app installation.
+all within Telegram.
 
-If the scan finds something concerning, one tap generates a draft police report in the format SPF expects. Most people who get scammed don't report it. This tries to make reporting easier.
+It is capable of drafting a police report in the format that SPF expects. This improves user experience of lodging a police report.
 
 For anything urgent, call the **24/7 ScamShield Helpline at 1799**.
 
@@ -75,6 +75,76 @@ Telegram sends voice notes as OGG/Opus. FraudNot transcodes them to 16kHz mono W
 
 ## System Architecture
 
+graph LR
+    %% Styling to mimic the reference image's color blocking
+    classDef default fill:#fff,stroke:#333,stroke-width:1px;
+    classDef channel fill:#fff,stroke:#333,stroke-width:2px;
+    classDef ux fill:#20a38e,stroke:#0f7565,stroke-width:2px,color:#fff;
+    classDef middle fill:#fca635,stroke:#d98414,stroke-width:2px,color:#fff;
+    classDef backend fill:#b399ff,stroke:#8a60ff,stroke-width:2px,color:#fff;
+    classDef db fill:#0f7565,stroke:#0a5247,stroke-width:2px,color:#fff;
+
+    subgraph Client/Users
+        direction TB
+        U1[👥 All Users]
+    end
+
+    subgraph FrontEnd
+        direction TB
+        U1[👥 All Users] --- C1[📱 Telegram Mobile]
+        U1 --- C2[💻 Telegram Desktop]
+    end
+
+    subgraph Handlers
+        direction TB
+        UX1[Text / Image Messages]
+        UX2[Voice Notes / Audio]
+        UX3[Interactive Callback Buttons]
+        
+        C1 --> UX1
+        C1 --> UX2
+        C1 --> UX3
+        C2 --> UX1
+        C2 --> UX2
+        C2 --> UX3
+    end
+
+    subgraph Middleware
+        direction TB
+        M1[Bot Handlers & Size Validator]
+        M2[FFmpeg Audio Transcoder]
+        M3[UI Result Formatter]
+        
+        UX1 --> M1
+        UX2 --> M1
+        M1 -- ".ogg to .wav" --> M2
+        UX3 --> M3
+    end
+
+    subgraph Backend
+        direction TB
+        B1[ElevenLabs Scribe API]
+        B2[RAG Retriever / TF-IDF]
+        B3[Reka AI Flash Engine]
+        DB[(SG Scam Knowledge Base)]
+        
+        M2 --> B1
+        M1 --> B2
+        B2 --> DB
+        B1 -- "Transcript" --> B3
+        B2 -- "Local Context" --> B3
+        B3 -. "JSON Verdict" .-> M3
+        M3 -. "HTML Response" .-> C1
+    end
+
+    %% Apply Classes
+    class C1,C2 channel;
+    class UX1,UX2,UX3 ux;
+    class M1,M2,M3 middle;
+    class B1,B2,B3 backend;
+    class DB db;
+
+## Logic Flow
 ```
 [ User ] 📱
     │
