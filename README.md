@@ -23,14 +23,14 @@ Built with a focus on the Singaporean context, SPOT grounds its AI analysis in r
 
 ---
 
-## 🚨 The Problem
+## The Problem
 Scams are becoming increasingly sophisticated. Threat actors now utilize AI-generated deepfakes, cloned voice notes, and highly targeted phishing campaigns. Traditional scam filters—which rely purely on static text-matching or blacklisted URLs—fail to catch multimodal threats (e.g., a voice note impersonating an official, or a screenshot of a fabricated bank transfer). 
 
 **SPOT** solves this by offering a zero-friction, multimodal verification layer right inside Telegram.
 
 ---
 
-## ✨ Key Features
+## Key Features
 
 * **Multimodal Threat Detection:** Powered by Reka AI, SPOT doesn't just read text. It "sees" screenshots of fake crypto platforms and "listens" to voice notes to detect impersonation and urgency cues.
 * **Contextual RAG Pipeline:** Generic LLMs often miss local nuances. SPOT utilizes a custom Retrieval-Augmented Generation (RAG) system built with `scikit-learn` (TF-IDF). It intercepts queries, searches a curated database of verified Singaporean scam cases, and grounds the AI's analysis in local reality.
@@ -40,7 +40,7 @@ Scams are becoming increasingly sophisticated. Threat actors now utilize AI-gene
 
 ---
 
-## 🏗 System Architecture
+## System Architecture
 
 ```mermaid
 graph TD
