@@ -9,23 +9,38 @@ logger = logging.getLogger(__name__)
 
 async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # Send a "processing" message immediately
-    status_msg = await update.message.reply_text("🔍 Analysing your voice message... Please wait.")
+    status_msg = await update.message.reply_text("🔍 Analysing your audio... Please wait.")
 
     try:
+        # Handle both voice notes and audio files
         voice = update.message.voice
+        audio = update.message.audio
+
+        # Determine which type we're processing and get the file object
+        if voice:
+            file_obj = voice
+            file_type = "voice note"
+        elif audio:
+            file_obj = audio
+            file_type = "audio file"
+        else:
+            # Neither voice nor audio - this shouldn't happen with proper filters
+            await status_msg.edit_text("⚠️ No audio content found.")
+            return
+
         # Check the size *before* downloading — Telegram tells us the file
         # size on the message object, so we can fail fast and avoid the
-        # download + ffmpeg conversion on a file we know is too big.
+        # download + conversion on a file we know is too big.
         # file_size is None for some edge cases, so guard.
-        if voice.file_size and voice.file_size > MAX_AUDIO_BYTES:
+        if file_obj.file_size and file_obj.file_size > MAX_AUDIO_BYTES:
             await status_msg.edit_text(
-                f"⚠️ Voice note is {voice.file_size / 1024 / 1024:.1f} MB, "
+                f"⚠️ {file_type.capitalize()} is {file_obj.file_size / 1024 / 1024:.1f} MB, "
                 f"but the limit is {MAX_AUDIO_BYTES // 1024 // 1024} MB.\n\n"
                 "Please send a shorter clip (under ~2 minutes is usually safe)."
             )
             return
 
-        file = await voice.get_file()
+        file = await file_obj.get_file()
         data = bytes(await file.download_as_bytearray())
 
         # Belt-and-braces: re-check the *downloaded* size, in case Telegram's
@@ -34,7 +49,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         # that gets swallowed into the "temporarily unavailable" message.
         if len(data) > MAX_AUDIO_BYTES:
             await status_msg.edit_text(
-                f"⚠️ Voice note is {len(data) / 1024 / 1024:.1f} MB, "
+                f"⚠️ {file_type.capitalize()} is {len(data) / 1024 / 1024:.1f} MB, "
                 f"but the limit is {MAX_AUDIO_BYTES // 1024 // 1024} MB.\n\n"
                 "Please send a shorter clip."
             )
@@ -42,10 +57,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
         caption = update.message.caption or ""
 
-        # Telegram voice notes are OGG/Opus; Reka's audio_url expects WAV.
-        # Convert before sending so the model actually hears the audio
-        # (without this step, Reka gets an unreadable blob and returns a
-        # canned low-confidence verdict that doesn't reflect the clip).
+        # Convert to WAV for Reka analysis (handles OGG/Opus voice notes and various audio formats)
         wav_bytes = convert_to_wav(data)
 
         result = await scan_voice(wav_bytes, caption)
@@ -54,5 +66,5 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         reply = format_verdict(result)
         await status_msg.edit_text(reply, parse_mode="HTML")
     except Exception as e:
-        logger.error(f"Voice scan failed: {e}")
-        await status_msg.edit_text("⚠️ Voice analysis temporarily unavailable. Please try again later.")
+        logger.error(f"Audio scan failed: {e}")
+        await status_msg.edit_text("⚠️ Audio analysis temporarily unavailable. Please try again later.")
