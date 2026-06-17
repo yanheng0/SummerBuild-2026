@@ -82,28 +82,24 @@ police>>>
 
 ## Architecture:
 
-```text
 Scambot/
-├── backend/
-│   ├── main.py                           
-│   ├── services/
-│   │   ├── reka_client.py           # Reka Vision (image → text)
-│   │   ├── audio_converter.py       # 
-│   │   ├── rag
-│   │   │   ├──  knowledge_base.py
-│   │   │   ├──  retriever.py
-│   │   ├── utils
-│   │   │   ├── formatter.py 
-├── handlers/
-│   ├── help.py                    # 
-│   ├── image.py                   #
-│   ├── report.py                  #
-│   ├── start.py                   #
-│   ├── text.py                    #
-│   └── voice.py                   #
-├── requirement.txt
-└── Dockerfile
-```
+├── Dockerfile                  # Debian-based Dockerfile with FFmpeg
+├── docker-compose.yml          # Container orchestration
+├── main.py                     # Entry point & bot routing
+├── requirements.txt
+├── handlers/                   # Telegram event handlers
+│   ├── image.py                # Handles photo uploads
+│   ├── voice.py                # Handles audio/voice notes
+│   ├── text.py                 # Handles text/links
+│   ├── report.py               # Generates draft police reports
+│   └── ...
+└── services/                   # Core business logic
+    ├── reka_client.py          # AI integration & Self-Reflection logic
+    ├── audio_converter.py      # Transcodes Telegram OGG to WAV
+    ├── utils/formatter.py      # HTML formatting for Telegram UI
+    └── rag/
+        ├── knowledge_base.py   # Curated SG scam patterns & indicators
+        └── retriever.py        # TF-IDF search engine
 
 ## Tech Stack:
 - Backend: Python 3.11+
