@@ -1,12 +1,12 @@
-# 🛡️ SPOT (Scan, Pattern, Observe & Track)
+# 🛡️ FraudNot
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
 ![Docker](https://img.shields.io/badge/Docker-Supported-2496ED.svg)
 ![Telegram](https://img.shields.io/badge/Telegram-Bot-2CA5E0.svg)
 ![AI](https://img.shields.io/badge/AI-Reka_Vision-purple.svg)
 
-**SPOT** is an autonomous, multimodal Telegram bot designed to protect Singapore residents from digital fraud in real time. Acting as a forensic scam detection engine, SPOT analyses text messages, screenshots, and voice notes — grounding every verdict in verified advisories from the Singapore Police Force (SPF) and Monetary Authority of Singapore (MAS).
-Built with a focus on the Singaporean context, SPOT grounds its AI analysis in real-world advisories from the Singapore Police Force (SPF) and Monetary Authority of Singapore (MAS).
+**FraudNot** is an autonomous, multimodal Telegram bot designed to protect Singapore residents from digital fraud in real time. Acting as a forensic scam detection engine, FraudNot analyses text messages, screenshots, and voice notes — grounding every verdict in verified advisories from the Singapore Police Force (SPF) and Monetary Authority of Singapore (MAS).
+Built with a focus on the Singaporean context, FraudNot grounds its AI analysis in real-world advisories from the Singapore Police Force (SPF) and Monetary Authority of Singapore (MAS).
 
 ---
 
@@ -18,137 +18,241 @@ Built with a focus on the Singaporean context, SPOT grounds its AI analysis in r
 5. [Getting Started (Local & Docker)](#-getting-started)
 6. [Usage & Commands](#-usage--commands)
 7. [Project Structure](#-project-structure)
-8. [Future Roadmap](#-future-roadmap)
 
 ---
 
 ## The Problem
-Scams are becoming increasingly sophisticated. Threat actors now utilize AI-generated deepfakes, cloned voice notes, and highly targeted phishing campaigns. Traditional scam filters—which rely purely on static text-matching or blacklisted URLs—fail to catch multimodal threats (e.g., a voice note impersonating an official, or a screenshot of a fabricated bank transfer). 
+Scams are Singapore's most prevalent crime — and the numbers are staggering.
 
-**SPOT** solves this by offering a zero-friction, multimodal verification layer right inside Telegram.
+According to the **SPF Annual Scams and Cybercrime Brief 2025**, Singapore recorded **37,308 scam cases** in 2025, with total losses amounting to **$913.1 million**. While overall case counts declined by 27.6% year-on-year, scammers are rapidly adapting, deploying more sophisticated tactics that are harder for the average person to detect.
+
+The four highest-impact scam categories tracked by [ScamShield (scamshield.gov.sg)](https://www.scamshield.gov.sg) tell the story:
+
+| Scam Type | Total Losses |
+|---|---|
+| 💼 Investment Scams | **$336.2 million** |
+| 🏛️ Government Impersonation | **$242.9 million** |
+| 💼 Job Scams | **$123.5 million** |
+| 🎣 Phishing | **$39.9 million** |
+
+Beyond the financial toll, scams cause lasting psychological harm — victims report anxiety, shame, and loss of trust. Many never report incidents to the authorities, meaning the true scale is likely far greater.
+
+**The core failure of existing tools is modality.** Traditional scam filters rely on static keyword blacklists and URL databases. They cannot:
+
+- **See** a screenshot of a fabricated bank transfer or fake crypto dashboard
+- **Listen** to a cloned voice note impersonating a government officer
+- **Reason** about local context — Singapore-specific agencies (CPF, IRAS, SPF), payment methods (PayNow), and scam patterns that generic models miss
+
+FraudNot was built to close that gap.
+
+---
+
+## How FraudNot Helps
+
+FraudNot gives any Telegram user — regardless of technical literacy — a zero-friction forensic verification layer. Instead of searching for information or second-guessing suspicious content alone, users forward the suspect material directly to SPOT and receive a structured verdict within seconds.
+
+If the content is a confirmed scam, SPOT can immediately draft a formal police report pre-populated with the relevant details, dramatically lowering the friction of reporting to SPF.
+
+For urgent help, users can also contact the **24/7 ScamShield Helpline at 1799**.
 
 ---
 
 ## Key Features
 
-* **Multimodal Threat Detection:** Powered by Reka AI, SPOT doesn't just read text. It "sees" screenshots of fake crypto platforms and "listens" to voice notes to detect impersonation and urgency cues.
-* **Contextual RAG Pipeline:** Generic LLMs often miss local nuances. SPOT utilizes a custom Retrieval-Augmented Generation (RAG) system built with `scikit-learn` (TF-IDF). It intercepts queries, searches a curated database of verified Singaporean scam cases, and grounds the AI's analysis in local reality.
-* **Self-Reflection & Verification Pass:** To eliminate false positives, SPOT features an autonomous escalation loop. If the AI's initial confidence score is ambiguous (30%–70%), the backend forces the model to act as a "Senior Forensic Investigator," re-evaluating the evidence step-by-step before returning a final verdict.
-* **Automated Police Reporting:** If a user is targeted by a scam, SPOT lowers the friction of reporting it. By typing `/report`, the bot parses the forensic JSON from the last scan and drafts a formal, structured police report ready for submission to the authorities.
-* **On-the-Fly Audio Transcoding:** Telegram voice notes (OGG/Opus) are automatically transcoded via FFmpeg into 16kHz WAV files, ensuring compatibility with the AI engine without hitting file size limits.
+**Multimodal Threat Detection**
+Powered by Reka Flash, FraudNot analyses text messages, screenshots, and voice notes in a single unified pipeline. It can read a fabricated PayNow confirmation, decode a phishing URL hidden in an image, and transcribe a voice note impersonating an SPF officer.
+
+**Contextual RAG Pipeline**
+Generic language models frequently miss Singapore-specific scam patterns. FraudNot uses a custom Retrieval-Augmented Generation (RAG) system built on TF-IDF cosine similarity, querying a curated knowledge base of verified SPF and MAS scam advisories before every analysis. This grounds verdicts in local reality rather than generic heuristics.
+
+**Self-Reflection & Verification Pass**
+To minimise false positives, FraudNot employs an autonomous escalation loop. When initial confidence is ambiguous (30–70%), the model is forced to act as a Senior Forensic Investigator — re-examining each indicator's strength and context before delivering a final verdict.
+
+**Automated Police Report Drafting**
+After any scan, users can type `/report` or click on `Detailed Report` to instantly generate a structured draft police report in the format expected by SPF. This reduces a common barrier: victims know they should report but find the process daunting.
+
+**On-the-Fly Audio Transcoding**
+Telegram voice notes (OGG/Opus) are automatically transcoded via FFmpeg to 16kHz mono WAV, then transcribed via ElevenLabs Scribe before being run through the scam analysis pipeline. This means voice-based impersonation attacks — one of the fastest-growing scam vectors — are handled natively.
 
 ---
 
 ## System Architecture
 
-SPOT is designed as a linear, high-speed forensic pipeline. When a user interacts with the bot, their input flows through four distinct processing layers.
+FraudNot is designed as a linear forensic pipeline. Every input flows through four distinct processing layers before a verdict is returned.
 
-### Visual Flow
-```text
+```
 [ User / Victim ] 📱
        │
        ▼
-[ Telegram Bot ] 🤖 ────────────────────────┐ (If /report)
-       │                                    │
-       ├─► Text / Image                     │
-       │                                    │
-       └─► Voice Note (.ogg)                │
-               │                            │
-               ▼                            │
-         [ FFmpeg ] 🎵 (Converts to WAV)    │
-               │                            │
-               ▼                            │
-[ 🧠 Intelligence Core ] ◄──────────────────┘
-       │
-       ├─► 1. RAG System 📚 (Retrieves local SPF/MAS case context)
-       │
-       ├─► 2. AI Pass 1  👁️ (Reka Flash: Multimodal Scan)
-       │
-       └─► 3. AI Pass 2  🕵️‍♂️ (Self-Reflection triggered if Confidence is 30-70%)
-               │
-               ▼
-[ UI Formatter ] 📝 (Translates JSON to clean HTML)
+[ Telegram Bot ] 🤖 ─────────────────────────┐
+       │                                     │ /report
+       ├─► Text / Image                      │
+       └─► Voice Note (.ogg / .mp3 / etc.)   │
+               │                             │
+               ▼                             │
+        [ FFmpeg + ElevenLabs ] 🎙️           │
+        (Transcode → Transcribe)             │
+               │                             │
+               ▼                             ▼
+┌──────────────────────────────────────────────────┐
+│              🧠 Intelligence Core                │
+│                                                  │
+│  1. RAG Retriever  — TF-IDF over SPF/MAS cases  │
+│  2. Pass 1         — Reka Flash multimodal scan  │
+│  3. Pass 2         — Self-reflection (if 30–70%) │
+└──────────────────────────────────────────────────┘
        │
        ▼
-[ Final Verdict ] 🚨 (Sent back to User)
+[ UI Formatter ] 📝  →  HTML verdict + inline button
+       │
+       ▼
+[ Final Verdict ] 🚨  →  User receives result
 ```
-## How It Works:
-The telegram bot uses REKA API to analyse the image. The bot returns a confidence scoring of the scam as well as the explainment based on its verdict.
-It is capable of drafting a detailed explaination for submission, providing detailed information such as "" <<< which are useful information for the
-police>>>
+### Decision Flow
 
-## Architecture:
-```text
-Scambot/
-├── Dockerfile                  # Debian-based Dockerfile with FFmpeg
-├── docker-compose.yml          # Container orchestration
-├── main.py                     # Entry point & bot routing
-├── requirements.txt
-├── handlers/                   # Telegram event handlers
-│   ├── image.py                # Handles photo uploads
-│   ├── voice.py                # Handles audio/voice notes
-│   ├── text.py                 # Handles text/links
-│   ├── report.py               # Generates draft police reports
-│   └── ...
-└── services/                   # Core business logic
-    ├── reka_client.py          # AI integration & Self-Reflection logic
-    ├── audio_converter.py      # Transcodes Telegram OGG to WAV
-    ├── utils/formatter.py      # HTML formatting for Telegram UI
-    └── rag/
-        ├── knowledge_base.py   # Curated SG scam patterns & indicators
-        └── retriever.py        # TF-IDF search engine
 ```
-## Tech Stack:
-- Language: Python 3.11+
-- Bot Framework: python-telegram-bot (v22.7)
-- AI Provider: Reka AI (reka-flash model via HTTPX)
-- Vector/RAG Engine: scikit-learn, numpy (TF-IDF & Cosine Similarity)
-- Audio Processing: pydub, FFmpeg
-- Infrastructure: Docker, Docker Compose
-
-## Getting Started:
-**Prerequisites**
-1. A Telegram Bot Token (From @BotFather on telegram)
-2. A Reka API key
-3. Docker or Python 3.11+ with FFmpeg installed 
-
-**Option 1: Running with Docker (Recommended)**:
-
-Docker handles all system dependencies, including FFmpeg for voice note processing.
-
-1. Clone the repository:
+Confidence ≥ 71% or ≤ 29%  →  Return Pass 1 result immediately
+Confidence 30–70%           →  Escalate to verification pass
+  Both passes agree          →  Return higher-confidence result
+  Passes disagree            →  Return SUSPICIOUS (55%) for human review
 ```
-git clone [https://github.com/yourusername/SPOT-scambot.git](https://github.com/yourusername/SPOT-scambot.git)
+
+---
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Language | Python 3.11+ |
+| Bot Framework | python-telegram-bot v22.7 |
+| AI / Vision | Reka Flash (`reka-flash`) via HTTPX |
+| Transcription | ElevenLabs Scribe (`scribe_v1`) |
+| RAG Engine | scikit-learn (TF-IDF), NumPy |
+| Audio Processing | pydub, FFmpeg |
+| Infrastructure | Docker, Docker Compose |
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- A Telegram Bot Token — obtain from [@BotFather](https://t.me/BotFather)
+- A [Reka AI](https://reka.ai) API key
+- An [ElevenLabs](https://elevenlabs.io) API key (for voice transcription)
+- Docker **or** Python 3.11+ with FFmpeg installed locally
+
+---
+
+### Option 1: Docker (Recommended)
+
+Docker handles all system dependencies including FFmpeg automatically.
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/yourusername/SPOT-scambot.git
 cd SPOT-scambot
+
+# 2. Configure environment variables
+cp .env.template .env
+# Edit .env and fill in your keys
+
+# 3. Build and run
+docker-compose up -d --build
+
+# 4. View live logs
+docker-compose logs -f
 ```
-2. Configure Environment Variables:
-```
+
+---
+
+### Option 2: Local Setup
+
+**Step 1 — Install FFmpeg**
+
+Ensure `ffmpeg` is installed and available on your system PATH:
+- **Windows:** Download from [ffmpeg.org](https://ffmpeg.org/download.html) and add the `bin/` directory to PATH
+- **macOS:** `brew install ffmpeg`
+- **Linux:** `sudo apt install ffmpeg`
+
+Verify: `ffmpeg -version`
+
+**Step 2 — Configure environment**
+
+```bash
 cp .env.template .env
 ```
-3. Edit the .env file and insert your keys:
-```
+
+Edit `.env`:
+```env
 TELEGRAM_BOT_TOKEN="your-telegram-bot-token"
 REKA_API_KEY="your-reka-api-key"
-REKA_API_URL="[https://api.reka.ai/v1](https://api.reka.ai/v1)"
+REKA_API_URL="https://api.reka.ai/v1"
+ELEVENLABS_API_KEY="your-elevenlabs-api-key"
 ```
-4. Build and Run the Bot:
-```
-docker-compose up -d --build
-```
-To view logs: 
-```docker-compose logs -f```
 
-**Option 2: Local Setup**
+**Step 3 — Install dependencies and run**
 
-Install FFmpeg: Ensure FFmpeg is installed and added to your system's PATH.
-
-1. Install Python dependencies:
-```
+```bash
 python -m venv venv
-source venv/bin/activate  # On Windows use: venv\Scripts\activate
+source venv/bin/activate       # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-```
-2. Run the bot:
-```
 python main.py
 ```
+
+---
+
+## Usage & Commands
+
+| Command / Input | Action |
+|---|---|
+| `/start` | Welcome message and quick guide |
+| `/help` | Full command reference |
+| `/report` | Draft a police report from the last scan |
+| Send any **text or URL** | Analyse for scam patterns |
+| Send an **image / screenshot** | Analyse for visual scam indicators |
+| Send a **voice note or audio file** | Transcribe and analyse for impersonation cues |
+
+After every scan, an inline **"Draft a Police Report"** button appears for one-tap report generation.
+
+---
+
+## Project Structure
+```
+FraudNot/
+├── Dockerfile                   # Debian-based image with FFmpeg
+├── docker-compose.yml           # Container orchestration
+├── main.py                      # Entry point and handler registration
+├── requirements.txt
+├── .env.template                # Environment variable template
+├── handlers/
+│   ├── start.py                 # /start command
+│   ├── help.py                  # /help command
+│   ├── text.py                  # Text and URL messages
+│   ├── image.py                 # Photo uploads
+│   ├── voice.py                 # Voice notes and audio files
+│   └── report.py                # /report command + inline button callback
+└── services/
+    ├── reka_client.py           # AI pipeline, escalation logic, report generation
+    ├── audio_converter.py       # FFmpeg transcoding (OGG → 16kHz WAV)
+    ├── utils/
+    │   ├── formatter.py         # HTML verdict formatter
+    │   └── formatter_button.py  # Verdict with inline keyboard
+    └── rag/
+        ├── knowledge_base.py    # Curated SPF/MAS scam case database
+        └── retriever.py         # TF-IDF cosine similarity search
+```
+
+---
+
+## ⚠️ Disclaimer
+
+FraudNot is a decision-support tool, not a replacement for professional judgement. All verdicts should be verified independently. If you believe you have been scammed:
+
+- Call the **24/7 ScamShield Helpline at 1799**
+- Lodge a police report at [police.gov.sg](https://www.police.gov.sg/e-services/lodge-police-report)
+- Contact your bank immediately to freeze transactions
+
+---
+
+*Built for Singapore 🇸🇬 · Powered by [Reka AI](https://reka.ai) · Scam data sourced from [ScamShield](https://www.scamshield.gov.sg) and [SPF](https://www.police.gov.sg)*
+
