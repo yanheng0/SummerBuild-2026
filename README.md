@@ -49,14 +49,13 @@ all within Telegram.
 
 It is capable of drafting a police report in the format that SPF expects. This improves user experience of lodging a police report.
 
-For anything urgent, call the **24/7 ScamShield Helpline at 1799**.
 
 ---
 
 ## Key Features
 
 - **Multimodal analysis**:
-Text, images, and voice notes all go through the same pipeline. A fabricated bank transfer screenshot, a phishing URL buried in a message, a voice note impersonating an ICA officer.
+Text, images, and voice notes all go through the same pipeline. Examples are fabricated bank transfer screenshots, phishing URLs buried in a message, voice notes impersonating an ICA officer.
 
 - **Singapore-specific RAG**:
 Before every analysis, a TF-IDF retriever searches a curated knowledge base of verified SPF scam cases and injects the most relevant ones into the model's context. This is what stops the model from giving generic answers to Singapore-specific scam patterns.
@@ -65,7 +64,7 @@ Before every analysis, a TF-IDF retriever searches a curated knowledge base of v
 When the initial confidence score lands between 30% and 70%, FraudNot runs a second verification pass. The model re-examines each indicator, rates its strength, checks for false-positive triggers, and produces a revised verdict. If the two passes disagree, the result defaults to SUSPICIOUS for human review.
 
 - **Police report drafting**:
-`/report` parses the last scan result and drafts a structured police report. It's clearly labelled as a draft that needs verification before submission.
+`/report` parses the last scan result and drafts a structured police report. It consist of common police questions for the ease of the lodging a report online.
 
 - **Audio transcription pipeline**:
 Telegram sends voice notes as OGG/Opus. FraudNot transcodes them to 16kHz mono WAV via FFmpeg, sends them to ElevenLabs Scribe for transcription, then runs the transcript through the standard text analysis pipeline. Voice-based impersonation scams get the same treatment as everything else.
@@ -147,10 +146,10 @@ Telegram sends voice notes as OGG/Opus. FraudNot transcodes them to 16kHz mono W
 
 ## Logic Flow
 ```
-[ User ] 📱
+[ User ]
     │
     ▼
-[ Telegram Bot ] 🤖 ───────────────────────┐
+[ Telegram Bot ]  ─────────────────────────┐
     │                                      │ /report
     ├─► Text / Image                       │
     └─► Voice note (.ogg / .mp3 / etc.)    │
@@ -234,7 +233,7 @@ docker-compose logs -f
 
 ### Option 2: Local Setup
 
-**Step 1 — Install FFmpeg**
+**Step 1: Install FFmpeg**
 
 Ensure `ffmpeg` is installed and available on your system PATH:
 - **Windows:** Download from [ffmpeg.org](https://ffmpeg.org/download.html) and add the `bin/` directory to PATH
@@ -243,7 +242,7 @@ Ensure `ffmpeg` is installed and available on your system PATH:
 
 Verify: `ffmpeg -version`
 
-**Step 2 — Configure environment**
+**Step 2: Configure environment**
 
 ```bash
 cp .env.template .env
@@ -257,7 +256,7 @@ REKA_API_URL="https://api.reka.ai/v1"
 ELEVENLABS_API_KEY="your-elevenlabs-api-key"
 ```
 
-**Step 3 — Install dependencies and run**
+**Step 3: Install dependencies and run**
 
 ```bash
 python -m venv venv
