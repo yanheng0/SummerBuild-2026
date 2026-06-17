@@ -44,7 +44,8 @@ The gap is modality. Existing tools can't read a screenshot of a fake PayNow tra
 
 ## How FraudNot Helps
 
-Send FraudNot a suspicious message, image, or voice note. It runs it through a forensic analysis pipeline grounded in real Singapore scam cases and returns a verdict with confidence score, scam type, key indicators, and a recommended action — all in Telegram, no app install required.
+Send FraudNot a suspicious message, image, or voice note. It runs them through a forensic analysis pipeline grounded in real Singapore scam cases and returns a verdict with confidence score, scam type, key indicators, and a recommended action 
+all within Telegram and require no app installation.
 
 If the scan finds something concerning, one tap generates a draft police report in the format SPF expects. Most people who get scammed don't report it. This tries to make reporting easier.
 
