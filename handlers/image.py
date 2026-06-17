@@ -1,7 +1,7 @@
 import logging
 from telegram import Update
 from telegram.ext import ContextTypes
-from services.reka_client import scan_image
+from services.reka_client import scan_image, MAX_IMAGE_BYTES
 from services.utils.formatter import format_verdict
 
 logger = logging.getLogger(__name__)
@@ -12,11 +12,36 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     try:
         photo = update.message.photo[-1]
+        # Check the size *before* downloading — Telegram tells us the file
+        # size on each PhotoSize, so we can fail fast on a file we know is
+        # too big and avoid the network round-trip.
+        if photo.file_size and photo.file_size > MAX_IMAGE_BYTES:
+            await status_msg.edit_text(
+                f"⚠️ Image is {photo.file_size / 1024 / 1024:.1f} MB, "
+                f"but the limit is {MAX_IMAGE_BYTES // 1024 // 1024} MB.\n\n"
+                "Please send a smaller image (or compress it before sending)."
+            )
+            return
+
         file = await photo.get_file()
-        data = await file.download_as_bytearray()
+        data = bytes(await file.download_as_bytearray())
+
+        # Belt-and-braces: re-check the *downloaded* size, in case
+        # Telegram's file_size field was missing or wrong. Without this,
+        # an oversize download would reach scan_image and raise a generic
+        # ValueError that gets swallowed into the "temporarily unavailable"
+        # message.
+        if len(data) > MAX_IMAGE_BYTES:
+            await status_msg.edit_text(
+                f"⚠️ Image is {len(data) / 1024 / 1024:.1f} MB, "
+                f"but the limit is {MAX_IMAGE_BYTES // 1024 // 1024} MB.\n\n"
+                "Please send a smaller image."
+            )
+            return
+
         caption = update.message.caption or ""
 
-        result = await scan_image(bytes(data), caption)
+        result = await scan_image(data, caption)
         context.user_data['last_analysis'] = result  # store for /report
 
         reply = format_verdict(result)
