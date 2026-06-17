@@ -38,7 +38,8 @@ The four categories that do the most damage, per [ScamShield](https://www.scamsh
 
 The count went down 27.6% in 2025, but the tactics got harder to catch. Scammers now use AI-generated voice notes, deepfake images, and spoofed government sender IDs. Static keyword filters and URL blacklists weren't built for any of that.
 
-The gap is modality. Existing tools can't read a screenshot of a fake PayNow transfer, can't listen to a cloned SPF officer's voice, and don't know that "safe account" transfers are a government impersonation red flag specific to Singapore. SPOT was built to fill that gap.
+The gap is modality. Existing tools can't read a screenshot of a fake PayNow transfer, can't listen to a cloned SPF officer's voice, and don't know that "safe account" transfers are a government impersonation red flag specific to Singapore. FraudNot was built to fill that gap.
+
 ---
 
 ## How FraudNot Helps
