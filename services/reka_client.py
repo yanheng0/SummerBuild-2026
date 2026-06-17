@@ -282,7 +282,7 @@ async def _scan_with_escalation(content, query_text: str, size_limit=None, raw_d
             "recommended_action": "FLAG_FOR_HUMAN_REVIEW",
         }
 
-# Public scan functions 
+# Public scan functions
 async def scan_text(text: str) -> dict:
     return await _scan_with_escalation(text, text)
 
@@ -296,14 +296,71 @@ async def scan_image(data: bytes, caption: str = "") -> dict:
     ]
     return await _scan_with_escalation(content, caption, MAX_IMAGE_BYTES, data)
 
+
+# Dedicated audio transcription via Reka's Speech API. We do this BEFORE
+# running scam analysis so the model works on real text content rather
+# than guessing from a prompt + RAG examples. 
+async def transcribe_audio(wav_bytes: bytes) -> str:
+    """Transcribe a WAV clip via Reka's /v1/transcription_or_translation endpoint.
+
+    Returns the transcript string, or raises RuntimeError on failure.
+    Sampling rate must match the WAV header. Our converter emits 16kHz
+    mono PCM, which the API documents as the recommended input.
+    """
+    if not REKA_API_KEY:
+        raise RuntimeError("REKA_API_KEY not set")
+    payload = {
+        "audio_url": _data_url("audio/wav", wav_bytes),
+        "sampling_rate": 16000,
+        "temperature": 0,
+        "max_tokens": 1024,
+    }
+    headers = {"X-Api-Key": REKA_API_KEY, "Content-Type": "application/json"}
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        resp = await client.post(
+            f"{REKA_API_URL}/transcription_or_translation",
+            headers=headers,
+            json=payload,
+        )
+    if resp.status_code >= 400:
+        raise RuntimeError(
+            f"Reka transcription error: {resp.status_code} - {resp.text[:300]}"
+        )
+    data = resp.json()
+    transcript = (data.get("transcript") or "").strip()
+    return transcript
+
+
 async def scan_voice(data: bytes, caption: str = "") -> dict:
+    """Transcribe the audio first, then run text-based scam analysis."""
     if len(data) > MAX_AUDIO_BYTES:
         raise ValueError(f"Audio exceeds {MAX_AUDIO_BYTES//1024//1024} MB")
-    content = [
-        {"type": "audio_url", "audio_url": {"url": _data_url("audio/wav", data)}},
-        {"type": "text", "text": "Listen to this voice message and analyse it for scam indicators." + (f" User caption: {caption}" if caption else "")}
-    ]
-    return await _scan_with_escalation(content, caption, MAX_AUDIO_BYTES, data)
+
+    logger.info(f"Voice scan: bytes_in={len(data)}, starting transcription")
+    try:
+        transcript = await transcribe_audio(data)
+    except Exception as e:
+        # if there is error, it will be in the logger 
+        logger.error(f"Voice transcription failed: {e}")
+        return _fallback("the audio could not be transcribed")
+
+    logger.info(f"Voice scan: transcript_len={len(transcript)}")
+    if not transcript:
+        # Transcription succeeded at the HTTP level but returned empty
+        # content — e.g. silent clip, or model filtered the audio. Don't
+        # let the caller think the message was analysed.
+        return _fallback("the audio was silent or could not be understood")
+
+    # Use the transcript as the analysis input. Prefix with a marker so
+    # the model and any log reader can see the source of the text.
+    analysis_input = transcript
+    if caption:
+        analysis_input = f"[User caption: {caption}]\n\n{transcript}"
+
+    # Run the standard text-based pipeline on the transcript. This goes
+    # through RAG grounding (which now matches real text) and the
+    # escalation logic.
+    return await scan_text(analysis_input)
 
 # Report generation (uses Flash)
 async def generate_report(analysis_json: str, submitted_at: str) -> str:
