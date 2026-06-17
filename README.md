@@ -41,7 +41,6 @@ Scams are becoming increasingly sophisticated. Threat actors now utilize AI-gene
 ---
 
 ## System Architecture
-## 🏗 System Architecture & Data Flow
 
 SPOT is designed as a linear, high-speed forensic pipeline. When a user interacts with the bot, their input flows through four distinct processing layers.
 
