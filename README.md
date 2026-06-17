@@ -41,40 +41,38 @@ Scams are becoming increasingly sophisticated. Threat actors now utilize AI-gene
 ---
 
 ## System Architecture
+## 🏗 System Architecture & Data Flow
 
-```mermaid
-graph TD
-    User([User / Victim]) -- "Sends Media/Text\n(Telegram)" --> Bot[SPOT Telegram Bot]
-    Bot -- "/report" --> Report[Report Handler]
-    
-    subgraph input [Input Processing]
-        Bot -- "Voice Note .ogg" --> VoiceCheck[Size Check]
-        VoiceCheck -- "Pass" --> FFmpeg[FFmpeg Converter]
-        FFmpeg -- "16kHz Mono WAV" --> RekaClient[Reka API Client]
-        
-        Bot -- "Image/Text" --> MediaCheck[Size Check]
-        MediaCheck -- "Pass" --> RekaClient
-    end
-    
-    Report --> RekaClient
-    
-    subgraph rag [RAG System - Context Grounding]
-        RekaClient -- "Extract Query" --> Retriever[TF-IDF Retriever]
-        Retriever -- "Cosine Similarity" --> DB[(SG Scam Knowledge Base)]
-        DB -- "Real SPF/MAS Cases" --> Retriever
-        Retriever -- "Enriched Context" --> RekaClient
-    end
-    
-    subgraph ai [AI Engine - Reka Vision]
-        RekaClient -- "Multimodal Prompt" --> RekaFlash((Reka AI Flash))
-        RekaFlash -- "Ambiguous Confidence\n30% - 70%" --> SelfReflect[Verification Pass]
-        SelfReflect -- "Step-by-Step Reasoning\nTemp 0.0" --> RekaFlash
-    end
+SPOT is designed as a linear, high-speed forensic pipeline. When a user interacts with the bot, their input flows through four distinct processing layers.
 
-    RekaFlash -- "Cleaned JSON" --> Formatter[UI Formatter]
-    Formatter -- "HTML Response" --> Bot
-    Bot -- "Verdict & Actionable Advice" --> User
-```
+### Visual Flow
+```text
+[ User / Victim ] 📱
+       │
+       ▼
+[ Telegram Bot ] 🤖 ────────────────────────┐ (If /report)
+       │                                    │
+       ├─► Text / Image                     │
+       │                                    │
+       └─► Voice Note (.ogg)                │
+               │                            │
+               ▼                            │
+         [ FFmpeg ] 🎵 (Converts to WAV)    │
+               │                            │
+               ▼                            │
+[ 🧠 Intelligence Core ] ◄──────────────────┘
+       │
+       ├─► 1. RAG System 📚 (Retrieves local SPF/MAS case context)
+       │
+       ├─► 2. AI Pass 1  👁️ (Reka Flash: Multimodal Scan)
+       │
+       └─► 3. AI Pass 2  🕵️‍♂️ (Self-Reflection triggered if Confidence is 30-70%)
+               │
+               ▼
+[ UI Formatter ] 📝 (Translates JSON to clean HTML)
+       │
+       ▼
+[ Final Verdict ] 🚨 (Sent back to User)
 
 ## How It Works:
 The telegram bot uses REKA API to analyse the image. The bot returns a confidence scoring of the scam as well as the explainment based on its verdict.
