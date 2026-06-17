@@ -42,6 +42,9 @@ Scams are becoming increasingly sophisticated. Threat actors now utilize AI-gene
 
 ## System Architecture
 
+## System Architecture
+
+```mermaid
 graph TD
     User([User / Victim]) -- "Sends Media/Text\n(Telegram)" --> Bot[SPOT Telegram Bot]
     Bot -- "/report" --> Report[Report Handler]
@@ -73,6 +76,7 @@ graph TD
     RekaFlash -- "Cleaned JSON" --> Formatter[UI Formatter]
     Formatter -- "HTML Response" --> Bot
     Bot -- "Verdict & Actionable Advice" --> User
+```
 
 ## How It Works:
 The telegram bot uses REKA API to analyse the image. The bot returns a confidence scoring of the scam as well as the explainment based on its verdict.
@@ -80,7 +84,7 @@ It is capable of drafting a detailed explaination for submission, providing deta
 police>>>
 
 ## Architecture:
-
+```text
 Scambot/
 ├── Dockerfile                  # Debian-based Dockerfile with FFmpeg
 ├── docker-compose.yml          # Container orchestration
@@ -99,7 +103,7 @@ Scambot/
     └── rag/
         ├── knowledge_base.py   # Curated SG scam patterns & indicators
         └── retriever.py        # TF-IDF search engine
-
+```
 ## Tech Stack:
 - Backend: Python 3.11+
 - Frontend: 
