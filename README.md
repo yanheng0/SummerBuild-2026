@@ -103,8 +103,53 @@ Scambot/
         └── retriever.py        # TF-IDF search engine
 ```
 ## Tech Stack:
-- Backend: Python 3.11+
-- Frontend: 
-- AI: Reka Vision
+- Language: Python 3.11+
+- Bot Framework: python-telegram-bot (v22.7)
+- AI Provider: Reka AI (reka-flash model via HTTPX)
+- Vector/RAG Engine: scikit-learn, numpy (TF-IDF & Cosine Similarity)
+- Audio Processing: pydub, FFmpeg
+- Infrastructure: Docker, Docker Compose
 
+## Getting Started:
+**Prerequisites**
+1. A Telegram Bot Token (From @BotFather on telegram)
+2. A Reka API key
+3. Docker or Python 3.11+ with FFmpeg installed 
 
+**Option 1: Running with Docker (Recommended)**
+Docker handles all system dependencies, including FFmpeg for voice note processing.
+
+Clone the repository:
+
+Bash
+git clone [https://github.com/yourusername/SPOT-scambot.git](https://github.com/yourusername/SPOT-scambot.git)
+cd SPOT-scambot
+Configure Environment Variables:
+
+Bash
+cp .env.template .env
+Edit the .env file and insert your keys:
+
+Code snippet
+TELEGRAM_BOT_TOKEN="your-telegram-bot-token"
+REKA_API_KEY="your-reka-api-key"
+REKA_API_URL="[https://api.reka.ai/v1](https://api.reka.ai/v1)"
+Build and Run the Bot:
+
+Bash
+docker-compose up -d --build
+To view logs: docker-compose logs -f
+
+**Option 2: Local Setup**
+Install FFmpeg: Ensure FFmpeg is installed and added to your system's PATH.
+
+Install Python dependencies:
+
+Bash
+python -m venv venv
+source venv/bin/activate  # On Windows use: venv\Scripts\activate
+pip install -r requirements.txt
+Run the bot:
+
+Bash
+python main.py
