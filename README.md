@@ -42,13 +42,12 @@ Scams are becoming increasingly sophisticated. Threat actors now utilize AI-gene
 
 ## System Architecture
 
-```mermaid
 graph TD
     User([User / Victim]) -- "Sends Media/Text\n(Telegram)" --> Bot[SPOT Telegram Bot]
     Bot -- "/report" --> Report[Report Handler]
     
-    subgraph Input Processing
-        Bot -- "Voice Note (.ogg)" --> VoiceCheck[Size Check]
+    subgraph input [Input Processing]
+        Bot -- "Voice Note .ogg" --> VoiceCheck[Size Check]
         VoiceCheck -- "Pass" --> FFmpeg[FFmpeg Converter]
         FFmpeg -- "16kHz Mono WAV" --> RekaClient[Reka API Client]
         
@@ -58,17 +57,17 @@ graph TD
     
     Report --> RekaClient
     
-    subgraph RAG System (Context Grounding)
+    subgraph rag [RAG System - Context Grounding]
         RekaClient -- "Extract Query" --> Retriever[TF-IDF Retriever]
         Retriever -- "Cosine Similarity" --> DB[(SG Scam Knowledge Base)]
         DB -- "Real SPF/MAS Cases" --> Retriever
         Retriever -- "Enriched Context" --> RekaClient
     end
     
-    subgraph AI Engine (Reka Vision)
+    subgraph ai [AI Engine - Reka Vision]
         RekaClient -- "Multimodal Prompt" --> RekaFlash((Reka AI Flash))
-        RekaFlash -- "Ambiguous Confidence\n(30% - 70%)" --> SelfReflect[Verification Pass]
-        SelfReflect -- "Step-by-Step Reasoning\n(Temp 0.0)" --> RekaFlash
+        RekaFlash -- "Ambiguous Confidence\n30% - 70%" --> SelfReflect[Verification Pass]
+        SelfReflect -- "Step-by-Step Reasoning\nTemp 0.0" --> RekaFlash
     end
 
     RekaFlash -- "Cleaned JSON" --> Formatter[UI Formatter]
