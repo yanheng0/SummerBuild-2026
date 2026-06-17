@@ -44,72 +44,72 @@ The gap is modality. Existing tools can't read a screenshot of a fake PayNow tra
 
 ## How FraudNot Helps
 
-FraudNot gives any Telegram user — regardless of technical literacy — a zero-friction forensic verification layer. Instead of searching for information or second-guessing suspicious content alone, users forward the suspect material directly to FraudNot and receive a structured verdict within seconds.
+Send FraudNot a suspicious message, image, or voice note. It runs it through a forensic analysis pipeline grounded in real Singapore scam cases and returns a verdict with confidence score, scam type, key indicators, and a recommended action — all in Telegram, no app install required.
 
-If the content is a confirmed scam, FraudNot can immediately draft a formal police report pre-populated with the relevant details, dramatically lowering the friction of reporting to SPF.
+If the scan finds something concerning, one tap generates a draft police report in the format SPF expects. Most people who get scammed don't report it. This tries to make reporting easier.
 
-For urgent help, users can also contact the **24/7 ScamShield Helpline at 1799**.
+For anything urgent, call the **24/7 ScamShield Helpline at 1799**.
 
 ---
 
 ## Key Features
 
-**Multimodal Threat Detection**
-Powered by Reka Flash, FraudNot analyses text messages, screenshots, and voice notes in a single unified pipeline. It can read a fabricated PayNow confirmation, decode a phishing URL hidden in an image, and transcribe a voice note impersonating an SPF officer.
+**Multimodal analysis**
+Text, images, and voice notes all go through the same pipeline. A fabricated bank transfer screenshot, a phishing URL buried in a message, a voice note impersonating an ICA officer — SPOT handles all three.
 
-**Contextual RAG Pipeline**
-Generic language models frequently miss Singapore-specific scam patterns. FraudNot uses a custom Retrieval-Augmented Generation (RAG) system built on TF-IDF cosine similarity, querying a curated knowledge base of verified SPF and MAS scam advisories before every analysis. This grounds verdicts in local reality rather than generic heuristics.
+**Singapore-specific RAG**
+Before every analysis, a TF-IDF retriever searches a curated knowledge base of verified SPF and MAS scam cases and injects the most relevant ones into the model's context. This is what stops the model from giving generic answers to Singapore-specific scam patterns.
 
-**Self-Reflection & Verification Pass**
-To minimise false positives, FraudNot employs an autonomous escalation loop. When initial confidence is ambiguous (30–70%), the model is forced to act as a Senior Forensic Investigator — re-examining each indicator's strength and context before delivering a final verdict.
+**Self-reflection on ambiguous results**
+When the initial confidence score lands between 30% and 70%, SPOT runs a second verification pass. The model re-examines each indicator, rates its strength, checks for false-positive triggers, and produces a revised verdict. If the two passes disagree, the result defaults to SUSPICIOUS for human review.
 
-**Automated Police Report Drafting**
-After any scan, users can type `/report` or click on `Detailed Report` to instantly generate a structured draft police report in the format expected by SPF. This reduces a common barrier: victims know they should report but find the process daunting.
+**Police report drafting**
+`/report` parses the last scan result and drafts a structured police report. It's clearly labelled as a draft that needs verification before submission.
 
-**On-the-Fly Audio Transcoding**
-Telegram voice notes (OGG/Opus) are automatically transcoded via FFmpeg to 16kHz mono WAV, then transcribed via ElevenLabs Scribe before being run through the scam analysis pipeline. This means voice-based impersonation attacks — one of the fastest-growing scam vectors — are handled natively.
+**Audio transcription pipeline**
+Telegram sends voice notes as OGG/Opus. SPOT transcodes them to 16kHz mono WAV via FFmpeg, sends them to ElevenLabs Scribe for transcription, then runs the transcript through the standard text analysis pipeline. Voice-based impersonation scams get the same treatment as everything else.
+
 
 ---
 
 ## System Architecture
 
-FraudNot is designed as a linear forensic pipeline. Every input flows through four distinct processing layers before a verdict is returned.
+```
+[ User ] 📱
+    │
+    ▼
+[ Telegram Bot ] 🤖 ──────────────────────┐
+    │                                      │ /report
+    ├─► Text / Image                       │
+    └─► Voice note (.ogg / .mp3 / etc.)    │
+              │                            │
+              ▼                            │
+       [ FFmpeg + ElevenLabs ]             │
+       (Transcode → Transcribe)            │
+              │                            │
+              ▼                            ▼
+┌────────────────────────────────────────────────┐
+│             Intelligence Core                  │
+│                                                │
+│  1. RAG Retriever  — TF-IDF, SPF/MAS cases     │
+│  2. Pass 1         — Reka Flash scan           │
+│  3. Pass 2         — Verification (if 30–70%)  │
+└────────────────────────────────────────────────┘
+    │
+    ▼
+[ Formatter ] → HTML verdict + inline button
+    │
+    ▼
+[ User receives result ]
+```
+
+**Escalation logic:**
 
 ```
-[ User / Victim ] 📱
-       │
-       ▼
-[ Telegram Bot ] 🤖 ─────────────────────────┐
-       │                                     │ /report
-       ├─► Text / Image                      │
-       └─► Voice Note (.ogg / .mp3 / etc.)   │
-               │                             │
-               ▼                             │
-        [ FFmpeg + ElevenLabs ] 🎙️           │
-        (Transcode → Transcribe)             │
-               │                             │
-               ▼                             ▼
-┌──────────────────────────────────────────────────┐
-│              🧠 Intelligence Core                │
-│                                                  │
-│  1. RAG Retriever  — TF-IDF over SPF/MAS cases  │
-│  2. Pass 1         — Reka Flash multimodal scan  │
-│  3. Pass 2         — Self-reflection (if 30–70%) │
-└──────────────────────────────────────────────────┘
-       │
-       ▼
-[ UI Formatter ] 📝  →  HTML verdict + inline button
-       │
-       ▼
-[ Final Verdict ] 🚨  →  User receives result
-```
-### Decision Flow
-
-```
-Confidence ≥ 71% or ≤ 29%  →  Return Pass 1 result immediately
-Confidence 30–70%           →  Escalate to verification pass
+Confidence ≥ 71% or ≤ 29%  →  Return Pass 1 immediately
+Confidence 30–70%           →  Run verification pass
   Both passes agree          →  Return higher-confidence result
-  Passes disagree            →  Return SUSPICIOUS (55%) for human review
+  Passes disagree            →  Return SUSPICIOUS (55%), flag for review
 ```
 
 ---
@@ -119,7 +119,7 @@ Confidence 30–70%           →  Escalate to verification pass
 |---|---|
 | Language | Python 3.11+ |
 | Bot Framework | python-telegram-bot v22.7 |
-| AI / Vision | Reka Flash (`reka-flash`) via HTTPX |
+| AI / Vision | Reka Flash via HTTPX |
 | Transcription | ElevenLabs Scribe (`scribe_v1`) |
 | RAG Engine | scikit-learn (TF-IDF), NumPy |
 | Audio Processing | pydub, FFmpeg |
@@ -127,7 +127,7 @@ Confidence 30–70%           →  Escalate to verification pass
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
