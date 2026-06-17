@@ -1,12 +1,11 @@
-# 🛡️ SPOT (Scan Pattern Observation & Tracking)
+# 🛡️ SPOT (Scan, Pattern, Observe & Track)
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
 ![Docker](https://img.shields.io/badge/Docker-Supported-2496ED.svg)
 ![Telegram](https://img.shields.io/badge/Telegram-Bot-2CA5E0.svg)
 ![AI](https://img.shields.io/badge/AI-Reka_Vision-purple.svg)
 
-**SPOT** is an autonomous, multimodal Telegram Bot designed to protect residents from modern digital fraud. It acts as a forensic scam detection engine capable of analyzing text messages, suspicious images, and cloned voice notes. 
-
+**SPOT** is an autonomous, multimodal Telegram bot designed to protect Singapore residents from digital fraud in real time. Acting as a forensic scam detection engine, SPOT analyses text messages, screenshots, and voice notes — grounding every verdict in verified advisories from the Singapore Police Force (SPF) and Monetary Authority of Singapore (MAS).
 Built with a focus on the Singaporean context, SPOT grounds its AI analysis in real-world advisories from the Singapore Police Force (SPF) and Monetary Authority of Singapore (MAS).
 
 ---
