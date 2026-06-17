@@ -35,6 +35,23 @@ def _detect_image_mime(data: bytes) -> str:
         return "image/svg+xml"
     return "application/octet-stream"
 
+async def _call_reka_raw(messages: list, model: str = REKA_MODEL_FLASH, timeout: float = 60.0, temperature: float = 0.2) -> str:
+    """Like _call_reka but returns raw prose — skips JSON extraction."""
+    if not REKA_API_KEY:
+        raise RuntimeError("REKA_API_KEY not set")
+    headers = {"X-Api-Key": REKA_API_KEY, "Content-Type": "application/json"}
+    payload = {"model": model, "messages": messages, "temperature": temperature}
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        resp = await client.post(
+            f"{REKA_API_URL}/chat/completions",
+            headers=headers,
+            json=payload,
+        )
+        if resp.status_code >= 400:
+            raise RuntimeError(f"Reka API error: {resp.status_code} - {resp.text}")
+        data = resp.json()
+    return data["choices"][0]["message"]["content"].strip()
+
 # API call with retry and temperature 
 async def _call_reka(messages: list, model: str = REKA_MODEL_FLASH, timeout: float = 60.0, temperature: float = 0.2) -> str:
     if not REKA_API_KEY:
@@ -59,12 +76,6 @@ async def _call_reka(messages: list, model: str = REKA_MODEL_FLASH, timeout: flo
     return _extract_json(raw)
 
 
-# Strip markdown code fences and pull out the first JSON object from the
-# model's reply. We must NOT do .replace("json", "") on the whole reply —
-# that destroys the substring "json" wherever it legitimately appears in
-# analysis text, JSON keys, or values (e.g. "JSON-style encoding", a
-# reference to a JSON payload, etc.) and silently corrupts otherwise-valid
-# output, sending it to the parse-error fallback.
 def _extract_json(raw: str) -> str:
     # Strip code fences (``` or ```json / ```JSON). The pattern only
     # matches the fence markers themselves, not any other occurrence of
@@ -301,10 +312,10 @@ async def generate_report(analysis_json: str, submitted_at: str) -> str:
     except json.JSONDecodeError:
         raise ValueError("Invalid JSON")
     msg = f"The following scan result was produced on {submitted_at}:\n\n{clean}\n\nGenerate the police report."
-    raw_report = await _chat_with_retry(
+
+    raw_report = await _call_reka_raw(
         [{"role": "system", "content": REPORT_SYSTEM_PROMPT}, {"role": "user", "content": msg}],
-        REKA_MODEL_FLASH
+        REKA_MODEL_FLASH,
     )
-    # Clean up any stray "html" text if present
-    clean_report = raw_report.replace("html", "").replace("```", "").strip()
-    return clean_report
+    # Strip any stray markdown code fences the model may have added
+    return re.sub(r"```[a-z]*\s*|```", "", raw_report).strip()
