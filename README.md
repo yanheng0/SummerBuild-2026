@@ -15,12 +15,15 @@ based on its analysis. The analysis is grounded on the RAG database with actual 
 
 ## 📖 Table of Contents
 1. [The Problem](#-the-problem)
-2. [Key Features](#-key-features)
-3. [System Architecture](#-system-architecture)
-4. [Tech Stack](#-tech-stack)
-5. [Getting Started (Local & Docker)](#-getting-started)
-6. [Usage & Commands](#-usage--commands)
-7. [Project Structure](#-project-structure)
+2. [How FraudNot Helps](#-how-fraudnot-helps)
+3. [Key Features](#-key-features)
+4. [System Architecture](#-system-architecture)
+5. [Logic Flow](#-logic-flow)
+6. [Tech Stack](#-tech-stack)
+7. [Getting Started (Local & Docker)](#-getting-started)
+8. [Usage & Commands](#-usage--commands)
+9. [Project Structure](#-project-structure)
+10. [Disclaimer](#-disclaimer)
 
 ---
 
